@@ -12,12 +12,24 @@ StyleDictionary.registerFormat({
   name: 'flutter/app-colors',
   format: ({ dictionary }) => {
     const tokens = dictionary.allTokens.filter(t => t.$type === 'color');
-    const entries = tokens.map(t => {
-      const hex = t.$value.replace('#', '');
+    const entries = tokens.flatMap(t => {
+      const raw = t.$value;
       const name = t.name
         .replace(/^ds-/, '')
         .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      return `  static const Color ${name} = Color(0xFF${hex.toUpperCase()});`;
+      // Handle rgba(...) values → Color.fromRGBO(r, g, b, opacity)
+      const rgbaMatch = raw.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)$/i);
+      if (rgbaMatch) {
+        const [, r, g, b, a = '1'] = rgbaMatch;
+        return [`  static const Color ${name} = Color.fromRGBO(${r}, ${g}, ${b}, ${a});`];
+      }
+      // Handle hex values
+      if (raw.startsWith('#')) {
+        const hex = raw.replace('#', '');
+        return [`  static const Color ${name} = Color(0xFF${hex.toUpperCase()});`];
+      }
+      // Skip unrecognised formats
+      return [];
     });
     return [
       "import 'package:flutter/material.dart';",
