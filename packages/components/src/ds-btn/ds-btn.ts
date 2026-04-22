@@ -32,6 +32,8 @@ export class DsBtn extends LitElement {
       --ds-btn-bg:           transparent;
       --ds-btn-shadow:       none;
       --ds-btn-border-style: dashed;
+      --ds-btn-color:        var(--ds-alias-action-color, #1A1A1A);
+      --ds-btn-border-color: var(--ds-alias-action-border, #1A1A1A);
     }
 
     :host([size='md']) {

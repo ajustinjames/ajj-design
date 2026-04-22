@@ -31,7 +31,7 @@ export class DsInput extends LitElement {
       border-color: var(--ds-input-border-error, var(--ds-alias-status-error, #CC0000));
     }
     :host([state='error']:focus-within) {
-      border-color: var(--ds-input-border-error, #CC0000);
+      border-color: var(--ds-input-border-error, var(--ds-alias-status-error, #CC0000));
       box-shadow: var(--ds-input-shadow-error, var(--ds-alias-shadow-error, 2px 2px 0px #CC0000));
     }
     :host([state='success']) {
@@ -48,8 +48,8 @@ export class DsInput extends LitElement {
       background: transparent;
       border: none;
       outline: none;
-      font-family: var(--ds-font-ui, 'Inter', system-ui, sans-serif);
-      font-size: 14px;
+      font-family: var(--ds-input-font, var(--ds-alias-font-ui, 'Inter', system-ui, sans-serif));
+      font-size: var(--ds-input-font-size, 14px);
       color: var(--ds-input-text, var(--ds-alias-text-main, #1A1A1A));
       padding: var(--ds-input-padding, var(--ds-alias-input-padding, 8px));
     }
