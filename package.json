@@ -1,0 +1,16 @@
+{
+  "name": "ajj-design",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tokens:build": "pnpm --filter @ajj/tokens build",
+    "test": "pnpm --filter @ajj/components test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "devDependencies": {
+    "@storybook/web-components-vite": "^10.0.0",
+    "storybook": "^10.0.0",
+    "typescript": "^5.4.0"
+  }
+}

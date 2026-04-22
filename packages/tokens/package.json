@@ -1,0 +1,11 @@
+{
+  "name": "@ajj/tokens",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "node sd.config.js"
+  },
+  "dependencies": {
+    "style-dictionary": "^4.0.0"
+  }
+}
