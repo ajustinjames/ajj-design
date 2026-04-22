@@ -2,6 +2,8 @@
   "name": "ajj-design",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": ">=20.0.0" },
   "scripts": {
     "tokens:build": "pnpm --filter @ajj/tokens build",
     "test": "pnpm --filter @ajj/components test",

@@ -3,7 +3,7 @@ import { esbuildPlugin } from '@web/dev-server-esbuild';
 
 export default {
   files: 'test/**/*.test.ts',
-  plugins: [esbuildPlugin({ ts: true })],
+  plugins: [esbuildPlugin({ ts: true, tsconfig: './tsconfig.json' })],
   browsers: [playwrightLauncher({ product: 'chromium' })],
   nodeResolve: true,
 };
