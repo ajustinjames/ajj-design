@@ -8,6 +8,8 @@
   },
   "scripts": {
     "tokens:build": "pnpm --filter @ajj/tokens build",
+    "prestorybook": "pnpm tokens:build",
+    "prebuild-storybook": "pnpm tokens:build",
     "test": "pnpm --filter @ajj/components test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
