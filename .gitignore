@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Git worktrees
+.worktrees/
+
+# ajj-design build outputs
+packages/tokens/dist/
+packages/components/dist/
+node_modules/
+.storybook-cache/
+storybook-static/
