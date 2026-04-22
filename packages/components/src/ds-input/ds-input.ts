@@ -12,9 +12,10 @@ export class DsInput extends LitElement {
     :host {
       display: flex;
       align-items: stretch;
+      font-family: var(--ds-input-font, var(--ds-alias-font-ui, 'Inter', system-ui, sans-serif));
       border: 1px solid var(--ds-input-border, var(--ds-alias-surface-border, #1A1A1A));
-      background: var(--ds-input-bg, var(--ds-alias-surface-bg-alt, #F0F0EC));
-      box-shadow: var(--ds-input-shadow-idle, var(--ds-alias-shadow-inset, inset 1px 1px 0px rgba(0,0,0,0.1)));
+      background: var(--ds-input-bg, var(--ds-alias-surface-bg, #FFFFFF));
+      box-shadow: none;
       transition:
         background-color var(--ds-alias-transition-smooth, 200ms ease),
         border-color     var(--ds-alias-transition-smooth, 200ms ease),
@@ -22,7 +23,6 @@ export class DsInput extends LitElement {
     }
 
     :host(:focus-within) {
-      background: var(--ds-input-bg-focus, var(--ds-alias-surface-bg, #FFFFFF));
       border-color: var(--ds-global-color-accent, #FF4F00);
       box-shadow: var(--ds-input-shadow-focus, var(--ds-alias-shadow-accent, 2px 2px 0px #FF4F00));
     }
@@ -40,6 +40,21 @@ export class DsInput extends LitElement {
 
     :host([density='compact']) {
       --ds-input-padding: 4px;
+    }
+
+    ::slotted([slot='label']) {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      font-family: var(--ds-alias-font-technical, 'JetBrains Mono', monospace);
+      font-size: var(--ds-alias-font-size-label, 11px);
+      letter-spacing: var(--ds-alias-tracking-wide, 0.05em);
+      text-transform: uppercase;
+      color: var(--ds-alias-text-muted, #666666);
+      padding: 0 var(--ds-alias-space-2, 8px);
+      border-right: 1px solid var(--ds-input-border, var(--ds-alias-surface-border, #1A1A1A));
+      background: var(--ds-alias-surface-bg-alt, #F0F0EC);
+      align-self: stretch;
     }
 
     ::slotted(input),

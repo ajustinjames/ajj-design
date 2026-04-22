@@ -6,6 +6,7 @@ export class DsCard extends LitElement {
   static styles = css`
     :host {
       display: block;
+      font-family: var(--ds-card-font, var(--ds-alias-font-ui, 'Inter', system-ui, sans-serif));
       background: var(--ds-card-bg, var(--ds-alias-surface-bg, #FFFFFF));
       border: var(--ds-card-border-width, 1px) solid var(--ds-card-border-color, var(--ds-alias-surface-border, #1A1A1A));
       padding: var(--ds-card-padding, 24px);
