@@ -7,7 +7,8 @@
   },
   "scripts": {
     "test": "web-test-runner",
-    "test:watch": "web-test-runner --watch"
+    "test:watch": "web-test-runner --watch",
+    "test:screenshots": "playwright test"
   },
   "dependencies": {
     "@ajj/tokens": "workspace:*",
@@ -15,9 +16,10 @@
   },
   "devDependencies": {
     "@open-wc/testing": "^4.0.0",
+    "@playwright/test": "^1.59.1",
+    "@web/dev-server-esbuild": "^1.0.0",
     "@web/test-runner": "^0.19.0",
     "@web/test-runner-playwright": "^0.11.0",
-    "typescript": "^5.4.0",
-    "@web/dev-server-esbuild": "^1.0.0"
+    "typescript": "^5.4.0"
   }
 }
