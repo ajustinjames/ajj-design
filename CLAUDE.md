@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`ajj-design` is an industrial-material design system — framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary. It targets web (CSS custom properties) and Flutter (Dart classes) from a single source of truth.
+`ajj-design` is an industrial-material design system — framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary. It targets web (CSS custom properties) from a single source of truth.
 
 ## Commands
 
@@ -37,7 +37,7 @@ pnpm build-storybook
 
 | Package | Name | Purpose |
 |---|---|---|
-| `packages/tokens` | `@ajj/tokens` | Single `tokens.json` → Style Dictionary → `dist/web/tokens.css` + `dist/flutter/*.dart` |
+| `packages/tokens` | `@ajj/tokens` | Single `tokens.json` → Style Dictionary → `dist/web/tokens.css` |
 | `packages/components` | `@ajj/components` | Lit Web Components consuming token CSS vars |
 
 `@ajj/components` depends on `@ajj/tokens` via `workspace:*`. Storybook runs at the repo root and pulls stories from `packages/components/stories/`.
@@ -49,7 +49,7 @@ pnpm build-storybook
 - **alias** — semantic references (`{global.color.accent}`) — these are what components consume
 - **component** — per-component overrides (CSS custom property layer on top of alias tokens)
 
-`sd.config.js` registers custom formats for Tailwind `@theme {}` (web) and Dart classes (Flutter). Run `pnpm tokens:build` after any `tokens.json` change to regenerate both targets.
+`sd.config.js` registers a custom format for Tailwind `@theme {}` (web). Run `pnpm tokens:build` after any `tokens.json` change to regenerate.
 
 ### Component conventions
 
