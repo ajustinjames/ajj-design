@@ -9,3 +9,6 @@ export * from './ds-tooltip/ds-tooltip.js';
 export * from './ds-badge/ds-badge.js';
 export * from './ds-tag/ds-tag.js';
 export * from './ds-link/ds-link.js';
+export * from './ds-divider/ds-divider.js';
+export * from './ds-checkbox/ds-checkbox.js';
+export * from './ds-radio/ds-radio.js';
