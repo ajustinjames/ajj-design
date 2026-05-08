@@ -15,3 +15,6 @@ export * from './ds-radio/ds-radio.js';
 export * from './ds-toggle/ds-toggle.js';
 export * from './ds-select/ds-select.js';
 export * from './ds-code/ds-code.js';
+export * from './ds-alert/ds-alert.js';
+export * from './ds-spinner/ds-spinner.js';
+export * from './ds-progress/ds-progress.js';
