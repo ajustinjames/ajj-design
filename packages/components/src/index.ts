@@ -18,3 +18,5 @@ export * from './ds-code/ds-code.js';
 export * from './ds-alert/ds-alert.js';
 export * from './ds-spinner/ds-spinner.js';
 export * from './ds-progress/ds-progress.js';
+export * from './ds-breadcrumb/ds-breadcrumb.js';
+export * from './ds-avatar/ds-avatar.js';
