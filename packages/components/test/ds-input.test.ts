@@ -94,6 +94,12 @@ describe('ds-input', () => {
     expect(label.getAttribute('for')).to.equal('sys-key');
   });
 
+  it('idle background resolves to surface-bg-alt (#F0F0EC fallback)', async () => {
+    const el = await fixture<DsInput>(html`<ds-input><input type="text" /></ds-input>`);
+    // rgb(240, 240, 236) = #F0F0EC
+    expect(getComputedStyle(el).backgroundColor).to.equal('rgb(240, 240, 236)');
+  });
+
   it('emits dev warning when label present but no association', async () => {
     const warnings: string[] = [];
     const orig = console.warn;
