@@ -2,15 +2,48 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make ajj-design production-ready by dropping Flutter, fixing bugs, adding dark mode tokens, migrating to Vitest, wiring CI/CD, and building 17 new atom components.
+---
 
-**Architecture:** Token pipeline stays DTCG → Style Dictionary → CSS. Components follow Lit B+ shell pattern (visual skin, slot composition, token fallback chain). Testing moves from `@web/test-runner` to `@vitest/browser` with Playwright provider. New atoms mirror existing patterns exactly.
+## ⚠️ Execution Log — Key Pivots & Findings (2026-05-08)
 
-**Tech Stack:** Lit 3, Style Dictionary 4, Vitest (browser mode), Playwright (Chromium), Storybook 10, pnpm workspaces, GitHub Actions
+### What's already done (branch: `docs/design-system-completion-spec`)
+- ✅ Task 0: Flutter target dropped (`d2c0d94`)
+- ✅ Task 1: ds-input carved bg fix (`b2fdd3e`)
+- ✅ Task 2: ds-card interactive prop (`ec4038f`)
+- ✅ Task 4: Clinical story fix (`90d2010`)
+- ✅ Task 5: Dark mode tokens (`95beeb5`)
 
-**Delivery order:** Task 0 (Flutter drop) → Task 6 (Vitest migration) → Tasks 1–5 (bugs + clinical story + dark tokens) → Tasks 7–9 (screenshot infra + build pipeline + CI/CD) → Tasks 10–26 (17 atoms)
+### PIVOT: Task 6 (Vitest migration) — DROPPED
+`@vitest/browser` + Playwright browser mode is too complex. Decision: **keep `@web/test-runner` for unit tests**. Screenshot tests use `@playwright/test` as a separate runner. Task 6 is cancelled. All new component tests (Tasks 10–26) must use `@open-wc/testing` + chai assertions (not Vitest API).
 
-Vitest migration runs before any new tests are written so every new test uses Vitest API (`describe`/`it`/`expect` from `vitest`, jest-style assertions) directly — no mid-flight chai→jest rewrite.
+### PIVOT: Task 7 (screenshot infra) — updated approach
+Do NOT use `import { page } from '@vitest/browser/context'`. Instead:
+- Install `@playwright/test` as a separate dev dep
+- Create `packages/components/playwright.config.ts` with `testMatch: 'test/**/*.screenshot.ts'`
+- `screenshot-helpers.ts` takes a Playwright `Page` parameter (not Vitest browser context)
+- Unit tests: `pnpm test` (web-test-runner). Screenshot tests: `pnpm test:screenshots` (playwright)
+
+### CRITICAL: Worktree isolation + absolute paths = broken
+When dispatching subagents with `isolation: "worktree"`, the agent's `pwd` is the **worktree root** (not the main repo). If prompts include absolute paths like `/Users/ajames/workspace/ajustinjames/ajj-design/packages/...`, the Edit/Read tools bypass the worktree and write directly to the main repo — defeating isolation.
+
+**Fix:** In all worktree-agent prompts, use **relative paths only** (e.g. `packages/components/src/ds-input/ds-input.ts`). Never hardcode the absolute repo path in a worktree-agent prompt.
+
+### Context efficiency rules (hard-learned)
+- Skip spec + quality review loops for mechanical tasks with exact code in the plan
+- Don't give agents `pnpm install` or `git` work without ensuring they have Bash permission
+- Batch atom tasks: one agent per 3–5 atoms (not one agent per atom)
+- Sequential tasks (Tasks 3, 7–9): do inline, not via subagent
+- Parallel tasks (Tasks 10–26 atoms): worktrees with **relative paths**
+
+---
+
+**Goal:** Make ajj-design production-ready by dropping Flutter, fixing bugs, adding dark mode tokens, wiring CI/CD, and building 17 new atom components.
+
+**Architecture:** Token pipeline stays DTCG → Style Dictionary → CSS. Components follow Lit B+ shell pattern (visual skin, slot composition, token fallback chain). Unit tests stay on `@web/test-runner` + chai. Screenshot tests use `@playwright/test`. New atoms mirror existing patterns exactly.
+
+**Tech Stack:** Lit 3, Style Dictionary 4, `@web/test-runner` (unit), `@playwright/test` (screenshots), Storybook 10, pnpm workspaces, GitHub Actions
+
+**Delivery order (updated):** ~~Task 6~~ → Tasks 3 → Tasks 7–9 → Tasks 10–26 (17 atoms in parallel batches)
 
 ---
 
