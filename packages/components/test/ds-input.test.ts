@@ -116,4 +116,16 @@ describe('ds-input', () => {
     console.warn = orig;
     expect(warnings.some(w => w.includes('ds-input'))).to.be.true;
   });
+
+  it('disabled prop reflects attribute', async () => {
+    const el = await fixture<DsInput>(html`<ds-input disabled><input type="text" disabled /></ds-input>`);
+    expect(el.disabled).to.be.true;
+    expect(el.hasAttribute('disabled')).to.be.true;
+  });
+
+  it('disabled applies pointer-events:none and opacity:0.4', async () => {
+    const el = await fixture<DsInput>(html`<ds-input disabled><input type="text" disabled /></ds-input>`);
+    expect(getComputedStyle(el).pointerEvents).to.equal('none');
+    expect(getComputedStyle(el).opacity).to.equal('0.4');
+  });
 });

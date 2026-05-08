@@ -53,4 +53,25 @@ describe('ds-btn', () => {
     const el = await fixture<DsBtn>(html`<ds-btn variant="ghost"><button>Ghost</button></ds-btn>`);
     expect(el.getAttribute('variant')).to.equal('ghost');
   });
+
+  it('disabled prop reflects attribute', async () => {
+    const el = await fixture<DsBtn>(html`<ds-btn disabled><button disabled>OK</button></ds-btn>`);
+    expect(el.disabled).to.be.true;
+    expect(el.hasAttribute('disabled')).to.be.true;
+  });
+
+  it('disabled applies pointer-events:none and opacity:0.4', async () => {
+    const el = await fixture<DsBtn>(html`<ds-btn disabled><button disabled>OK</button></ds-btn>`);
+    expect(getComputedStyle(el).pointerEvents).to.equal('none');
+    expect(getComputedStyle(el).opacity).to.equal('0.4');
+  });
+
+  it('warns when shell disabled but native is not', async () => {
+    const warns: string[] = [];
+    const orig = console.warn;
+    console.warn = (...args: unknown[]) => warns.push(String(args[0]));
+    await fixture<DsBtn>(html`<ds-btn disabled><button>OK</button></ds-btn>`);
+    console.warn = orig;
+    expect(warns.some(w => w.includes('ds-btn'))).to.be.true;
+  });
 });

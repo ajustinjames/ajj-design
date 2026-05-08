@@ -43,6 +43,12 @@ export class DsInput extends LitElement {
       --ds-input-padding: 4px;
     }
 
+    :host([disabled]) {
+      pointer-events: none;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     ::slotted([slot='label']) {
       display: flex;
       align-items: center;
@@ -90,6 +96,7 @@ export class DsInput extends LitElement {
   @property({ type: String, reflect: true }) density: 'compact' | 'default' = 'default';
   @property({ type: String, reflect: true, attribute: 'label-for' }) labelFor?: string;
   @property({ type: String, reflect: true, attribute: 'data-type' }) dataType?: 'clinical';
+  @property({ type: Boolean, reflect: true }) disabled = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -106,6 +113,13 @@ export class DsInput extends LitElement {
       const isDsLabel = label.tagName.toLowerCase() === 'ds-label';
       if ((isNativeLabel || isDsLabel) && !label.getAttribute('for')) {
         label.setAttribute('for', this.labelFor);
+      }
+    }
+
+    if (globalThis.__DEV__ !== false && this.disabled) {
+      const native = this.querySelector<HTMLElement>('input, textarea, select');
+      if (native && !native.hasAttribute('disabled')) {
+        console.warn('<ds-input>: `disabled` set on shell but slotted native missing `disabled`. Keep them in sync.');
       }
     }
 
