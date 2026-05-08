@@ -8,6 +8,28 @@ StyleDictionary.registerFormat({
   },
 });
 
+StyleDictionary.registerFormat({
+  name: 'css/dark-theme',
+  format: ({ dictionary }) => {
+    const lines = dictionary.allTokens.map(t => {
+      const name = `--${t.name}`.replace('--ds-alias-dark-', '--ds-alias-');
+      return `  ${name}: ${t.$value};`;
+    });
+    const body = lines.join('\n');
+    return [
+      `@media (prefers-color-scheme: dark) {`,
+      `  :root:not([data-theme="light"]) {`,
+      body.split('\n').map(l => '  ' + l).join('\n'),
+      `  }`,
+      `}`,
+      `[data-theme="dark"] {`,
+      body,
+      `}`,
+      '',
+    ].join('\n');
+  },
+});
+
 const sd = new StyleDictionary({
   source: ['tokens.json'],
   usesDtcg: true,
@@ -20,6 +42,12 @@ const sd = new StyleDictionary({
         {
           destination: 'tokens.css',
           format: 'css/tailwind-theme',
+          filter: (token) => token.path[0] !== 'aliasDark',
+        },
+        {
+          destination: 'tokens-dark.css',
+          format: 'css/dark-theme',
+          filter: (token) => token.path[0] === 'aliasDark',
         },
       ],
     },
