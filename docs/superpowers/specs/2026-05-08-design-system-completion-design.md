@@ -154,12 +154,13 @@ All components follow the Tier A B+ shell pattern: visual skin only, no internal
 - **ARIA:** `role="switch"`, `aria-checked`
 - **Visual:** Rectangular track (0px radius), square thumb slides between positions. Accent fill when on. Hard-cast shadow on thumb. No spring animation — 100ms linear.
 - **Emits:** `change` event (mirrors native checkbox pattern)
+- **Note:** `ds-toggle` is the one Tier A exception — it tracks `checked` internally to render the thumb position. All other atoms are visual-only. Do not use this as a pattern for other components.
 
 #### `ds-select`
-- **Approach:** Radix UI Select (headless) wrapped in a Lit shell. Radix is permitted by manifesto.
+- **Approach:** B+ shell over native `<select>` — same pattern as `ds-checkbox`/`ds-radio`. Shell provides custom trigger appearance; native `<select>` handles all keyboard navigation, accessibility, and mobile platform picker. No Radix dependency (Radix is React-only; not usable in Lit).
 - **Props:** `disabled: boolean`, `placeholder?: string`, `state: 'default' | 'error' | 'success'`
-- **Visual:** Same carved shell as `ds-input`. Dropdown panel: `ds-card` elevation-2 treatment, 0px radius, hard-cast shadow, monospace option labels.
-- **Slots:** `<option>` elements in light DOM; shell intercepts via Radix.
+- **Visual:** Same carved shell as `ds-input`. Trigger shows selected value in monospace. Dropdown appearance is browser/OS native (not overridden — acceptable trade-off for full a11y without a custom listbox).
+- **Slots:** default (slotted native `<select>` with `<option>` children, consumer-owned)
 
 ### Content
 
@@ -180,10 +181,10 @@ All components follow the Tier A B+ shell pattern: visual skin only, no internal
 - **Slots:** `header` (title), default (body), `actions` (button row)
 
 #### `ds-spinner`
-- **Props:** `size: 'sm' | 'md' | 'lg'` (default `'md'`)
-- **ARIA:** `role="status"`, `aria-label="Loading"` (overrideable via slot)
+- **Props:** `size: 'sm' | 'md' | 'lg'` (default `'md'`), `label: string` (default `'Loading'`)
+- **ARIA:** `role="status"`, `aria-label` bound to `label` prop — consumer overrides via prop, not slot
 - **Visual:** Rotating square (not circle — 0px radius). Rotation animation: 200ms linear steps (stepped, mechanical feel — not smooth). Accent color.
-- **Slots:** `<slot name="label">` (hidden visually, read by screen readers)
+- **No slots.** Purely visual; all accessible text via `label` prop.
 
 #### `ds-progress`
 - **Props:** `value: number` (0–100), `max: number` (default 100)
