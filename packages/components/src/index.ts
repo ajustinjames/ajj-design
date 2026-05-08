@@ -12,3 +12,6 @@ export * from './ds-link/ds-link.js';
 export * from './ds-divider/ds-divider.js';
 export * from './ds-checkbox/ds-checkbox.js';
 export * from './ds-radio/ds-radio.js';
+export * from './ds-toggle/ds-toggle.js';
+export * from './ds-select/ds-select.js';
+export * from './ds-code/ds-code.js';
