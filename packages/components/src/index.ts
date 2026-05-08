@@ -6,3 +6,6 @@ export * from './ds-input/ds-input.js';
 export * from './ds-helper-text/ds-helper-text.js';
 export * from './ds-error-message/ds-error-message.js';
 export * from './ds-tooltip/ds-tooltip.js';
+export * from './ds-badge/ds-badge.js';
+export * from './ds-tag/ds-tag.js';
+export * from './ds-link/ds-link.js';
