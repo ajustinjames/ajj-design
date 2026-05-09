@@ -1,4 +1,9 @@
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import type { Page } from '@playwright/test';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const screenshotDir = join(__dirname, '__screenshots__');
 
 export async function withTheme(page: Page, theme: 'light' | 'dark', fn: () => Promise<void>): Promise<void> {
   await page.evaluate((t) => {
@@ -11,8 +16,9 @@ export async function withTheme(page: Page, theme: 'light' | 'dark', fn: () => P
 }
 
 export async function takeScreenshot(page: Page, name: string): Promise<void> {
+  await page.waitForSelector('#storybook-root > *');
   await page.screenshot({
-    path: `test/__screenshots__/${name}.png`,
+    path: join(screenshotDir, `${name}.png`),
     animations: 'disabled',
   });
 }

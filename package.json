@@ -11,10 +11,12 @@
     "prestorybook": "pnpm tokens:build",
     "prebuild-storybook": "pnpm tokens:build",
     "test": "pnpm --filter @ajj/components test",
+    "test:screenshots": "playwright test --config packages/components/playwright.config.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@storybook/web-components": "^10.3.5",
     "@storybook/web-components-vite": "^10.0.0",
     "storybook": "^10.0.0",

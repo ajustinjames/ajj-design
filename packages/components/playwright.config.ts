@@ -5,9 +5,10 @@ export default defineConfig({
   testMatch: '**/*.screenshot.ts',
   use: {
     headless: true,
+    baseURL: 'http://localhost:6006',
   },
   webServer: {
-    command: 'pnpm storybook --ci',
+    command: 'pnpm storybook',
     url: 'http://localhost:6006',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
