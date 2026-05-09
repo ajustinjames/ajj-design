@@ -17,6 +17,7 @@ export async function withTheme(page: Page, theme: 'light' | 'dark', fn: () => P
 
 export async function takeScreenshot(page: Page, name: string): Promise<void> {
   await page.waitForSelector('#storybook-root > *');
+  await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
     path: join(screenshotDir, `${name}.png`),
     animations: 'disabled',
