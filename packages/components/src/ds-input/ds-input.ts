@@ -14,7 +14,7 @@ export class DsInput extends LitElement {
       align-items: stretch;
       font-family: var(--ds-input-font, var(--ds-alias-font-ui, 'Inter', system-ui, sans-serif));
       border: 1px solid var(--ds-input-border, var(--ds-alias-surface-border, #1A1A1A));
-      background: var(--ds-input-bg, var(--ds-alias-surface-bg, #FFFFFF));
+      background: var(--ds-input-bg, var(--ds-alias-surface-bg-alt, #F0F0EC));
       box-shadow: none;
       transition:
         background-color var(--ds-alias-transition-smooth, 200ms ease),
@@ -25,6 +25,7 @@ export class DsInput extends LitElement {
     :host(:focus-within) {
       border-color: var(--ds-global-color-accent, #FF4F00);
       box-shadow: var(--ds-input-shadow-focus, var(--ds-alias-shadow-accent, 2px 2px 0px #FF4F00));
+      background: var(--ds-alias-surface-bg, #FFFFFF);
     }
 
     :host([state='error']) {
@@ -40,6 +41,12 @@ export class DsInput extends LitElement {
 
     :host([density='compact']) {
       --ds-input-padding: 4px;
+    }
+
+    :host([disabled]) {
+      pointer-events: none;
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     ::slotted([slot='label']) {
@@ -89,6 +96,7 @@ export class DsInput extends LitElement {
   @property({ type: String, reflect: true }) density: 'compact' | 'default' = 'default';
   @property({ type: String, reflect: true, attribute: 'label-for' }) labelFor?: string;
   @property({ type: String, reflect: true, attribute: 'data-type' }) dataType?: 'clinical';
+  @property({ type: Boolean, reflect: true }) disabled = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -105,6 +113,13 @@ export class DsInput extends LitElement {
       const isDsLabel = label.tagName.toLowerCase() === 'ds-label';
       if ((isNativeLabel || isDsLabel) && !label.getAttribute('for')) {
         label.setAttribute('for', this.labelFor);
+      }
+    }
+
+    if (globalThis.__DEV__ !== false && this.disabled) {
+      const native = this.querySelector<HTMLElement>('input, textarea, select');
+      if (native && !native.hasAttribute('disabled')) {
+        console.warn('<ds-input>: `disabled` set on shell but slotted native missing `disabled`. Keep them in sync.');
       }
     }
 

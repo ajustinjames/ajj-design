@@ -21,14 +21,15 @@ export class DsCard extends LitElement {
     :host([elevation='2']) { --ds-card-shadow: var(--ds-alias-shadow-2, 4px 4px 0px #000000); }
     :host([elevation='3']) { --ds-card-shadow: var(--ds-alias-shadow-3, 8px 8px 0px #000000); }
 
-    :host(:hover),
-    :host(:has(*:focus-visible)) {
+    :host([interactive]:hover),
+    :host([interactive]:has(*:focus-visible)) {
       transform: translate(-1px, -1px);
       --ds-card-shadow: var(--ds-alias-shadow-2, 4px 4px 0px #000000);
     }
   `;
 
   @property({ type: Number, reflect: true }) elevation: 1 | 2 | 3 = 1;
+  @property({ type: Boolean, reflect: true }) interactive = false;
 
   render() {
     return html`

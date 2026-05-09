@@ -3,8 +3,11 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    ".": "./dist/web/tokens.css"
+    ".": "./dist/web/tokens.css",
+    "./css": "./dist/web/tokens.css",
+    "./css-dark": "./dist/web/tokens-dark.css"
   },
+  "files": ["dist"],
   "scripts": {
     "build": "node sd.config.js"
   },

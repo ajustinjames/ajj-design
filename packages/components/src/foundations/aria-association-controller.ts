@@ -94,7 +94,7 @@ export class AriaAssociationController implements ReactiveController {
     }
     if (this.#opts.also) {
       for (const [k, v] of Object.entries(this.#opts.also)) {
-        target.setAttribute(k, v);
+        if (v !== undefined) target.setAttribute(k, v);
       }
     }
   }

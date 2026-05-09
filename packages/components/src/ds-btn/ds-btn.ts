@@ -1,6 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __DEV__: boolean | undefined;
+}
+
 @customElement('ds-btn')
 export class DsBtn extends LitElement {
   static styles = css`
@@ -62,6 +67,16 @@ export class DsBtn extends LitElement {
       transform: translate(0, 0);
     }
 
+    :host([disabled]) {
+      pointer-events: none;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    :host([disabled]) ::slotted(*) {
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
     ::slotted(*) {
       font-family: var(--ds-btn-font, var(--ds-alias-font-technical, 'JetBrains Mono', monospace));
       font-size:   var(--ds-btn-font-size, 12px);
@@ -83,6 +98,17 @@ export class DsBtn extends LitElement {
 
   @property({ type: String, reflect: true }) variant: 'default' | 'primary' | 'ghost' = 'default';
   @property({ type: String, reflect: true }) size: 'sm' | 'md' = 'md';
+  @property({ type: Boolean, reflect: true }) disabled = false;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    if (globalThis.__DEV__ !== false && this.disabled) {
+      const native = this.querySelector<HTMLElement>('button, input, a');
+      if (native && !native.hasAttribute('disabled')) {
+        console.warn('<ds-btn>: `disabled` set on shell but slotted native missing `disabled`. Keep them in sync.');
+      }
+    }
+  }
 
   render() {
     return html`

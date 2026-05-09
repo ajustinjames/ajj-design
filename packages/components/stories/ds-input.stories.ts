@@ -23,6 +23,7 @@ const meta: Meta<DsInputArgs> = {
         state="${state}"
         density="${density}"
         label-for="${withLabel ? 'inp-story' : ''}"
+        data-type="${clinical ? 'clinical' : ''}"
       >
         ${!withLabel
           ? html`<label slot="label" for="inp-story">System Key</label>`

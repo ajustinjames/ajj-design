@@ -41,4 +41,16 @@ describe('ds-card', () => {
     const display = getComputedStyle(el).display;
     expect(display).to.equal('block');
   });
+
+  it('defaults interactive to false', async () => {
+    const el = await fixture<DsCard>(html`<ds-card>content</ds-card>`);
+    expect(el.interactive).to.be.false;
+    expect(el.hasAttribute('interactive')).to.be.false;
+  });
+
+  it('reflects interactive attribute when true', async () => {
+    const el = await fixture<DsCard>(html`<ds-card interactive>content</ds-card>`);
+    expect(el.interactive).to.be.true;
+    expect(el.hasAttribute('interactive')).to.be.true;
+  });
 });

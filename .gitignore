@@ -147,3 +147,4 @@ packages/components/dist/
 node_modules/
 .storybook-cache/
 storybook-static/
+**/test-results/

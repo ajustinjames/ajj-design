@@ -94,6 +94,12 @@ describe('ds-input', () => {
     expect(label.getAttribute('for')).to.equal('sys-key');
   });
 
+  it('idle background resolves to surface-bg-alt (#F0F0EC fallback)', async () => {
+    const el = await fixture<DsInput>(html`<ds-input><input type="text" /></ds-input>`);
+    // rgb(240, 240, 236) = #F0F0EC
+    expect(getComputedStyle(el).backgroundColor).to.equal('rgb(240, 240, 236)');
+  });
+
   it('emits dev warning when label present but no association', async () => {
     const warnings: string[] = [];
     const orig = console.warn;
@@ -109,5 +115,17 @@ describe('ds-input', () => {
 
     console.warn = orig;
     expect(warnings.some(w => w.includes('ds-input'))).to.be.true;
+  });
+
+  it('disabled prop reflects attribute', async () => {
+    const el = await fixture<DsInput>(html`<ds-input disabled><input type="text" disabled /></ds-input>`);
+    expect(el.disabled).to.be.true;
+    expect(el.hasAttribute('disabled')).to.be.true;
+  });
+
+  it('disabled applies pointer-events:none and opacity:0.4', async () => {
+    const el = await fixture<DsInput>(html`<ds-input disabled><input type="text" disabled /></ds-input>`);
+    expect(getComputedStyle(el).pointerEvents).to.equal('none');
+    expect(getComputedStyle(el).opacity).to.equal('0.4');
   });
 });
