@@ -21,7 +21,7 @@ ajj-design/                              ← private platform monorepo
   packages/
     hardline-tokens/                     ← @ajustinjames/hardline-tokens
     hardline-components/                 ← @ajustinjames/hardline-components
-    # future:
+    # future: do not add now
     cobalt-tokens/                       ← @ajustinjames/cobalt-tokens
     cobalt-components/                   ← @ajustinjames/cobalt-components
   scripts/
@@ -69,7 +69,7 @@ All 21 `ds-*` components renamed to `hl-*`:
 `.storybook/main.ts`: `../packages/components/stories/**/*.stories.ts` → `../packages/*/stories/**/*.stories.ts`
 
 ### CLAUDE.md
-Update package names and component prefix docs throughout.
+Update package names and component prefix docs throughout. Then convert to AGENT.md with claude being thin redirect.
 
 ## Publishing
 
