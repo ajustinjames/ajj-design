@@ -61,15 +61,31 @@ All 21 `ds-*` components renamed to `hl-*`:
 ### CSS custom property prefix
 `--ds-*` → `--hl-*` across all component `static styles` and Style Dictionary output.
 
+Explicit changes in `packages/tokens/sd.config.js`:
+- `prefix: 'ds'` → `prefix: 'hl'` (line 38)
+- `css/dark-theme` format string-replace: `'--ds-alias-dark-'` → `'--hl-alias-dark-'` and `'--ds-alias-'` → `'--hl-alias-'` (both sides of the `.replace()` call, line 15)
+
+After these edits, run `pnpm tokens:build` to regenerate `tokens.css` and `tokens-dark.css`. No manual edits to generated files.
+
 ### Root scripts
 `--filter @ajj/tokens` → `--filter @ajustinjames/hardline-tokens`
 `--filter @ajj/components` → `--filter @ajustinjames/hardline-components`
+`packages/components/playwright.config.ts` → `packages/hardline-components/playwright.config.ts` (in `test:screenshots` script)
 
 ### Storybook stories glob
 `.storybook/main.ts`: `../packages/components/stories/**/*.stories.ts` → `../packages/*/stories/**/*.stories.ts`
 
+### Docs
+
+`docs/manifesto.md` line 41 references the old prefix and a non-existent component name:
+- `ds-` → `hl-`
+- `<ds-button>` → `<hl-btn>` (component is `hl-btn`, not `hl-button`)
+- `<ds-card>` → `<hl-card>`
+
+`docs/example.html` — bulk-replace `ds-` tags and `--ds-` CSS vars to `hl-` (106 matches).
+
 ### CLAUDE.md
-Update package names and component prefix docs throughout. Then convert to AGENT.md with claude being thin redirect.
+Update package names and component prefix docs throughout. Then rename to `AGENTS.md` (plural — cross-tool convention for Codex, Amp, etc.). Leave `CLAUDE.md` as a one-line redirect: `See AGENTS.md`.
 
 ## Publishing
 
@@ -91,6 +107,8 @@ Automated via GH Actions on merge (see Versioning).
 
 One version per design system — both packages always share the same version number. `hardline@0.1.0` means `hardline-tokens@0.1.0` and `hardline-components@0.1.0`.
 
+**First release:** both packages currently at `0.0.1`. Apply the `hardline:minor` label to the migration PR to bump to `0.1.0` on merge.
+
 ### PR label format
 `<system>:<bump>` — e.g., `hardline:patch`, `hardline:minor`, `hardline:major`
 
@@ -108,7 +126,8 @@ Adding a future system requires no changes to the workflow — the label prefix 
 
 ### Existing workflow changes
 - **`publish.yml`** — replace entirely with `release.yml`. It uses old `@ajj/*` package names, `v*` tag pattern, and `pnpm -r publish` (publishes all packages, wrong for multi-system). Delete it.
-- **`ci.yml`** — update any `--filter` flags from `@ajj/*` to `@ajustinjames/hardline-*`.
+- **`ci.yml`** — update `--filter` flags from `@ajj/*` to `@ajustinjames/hardline-*`. Also update hardcoded artifact upload path: `packages/components/test/__screenshots__/diff/` → `packages/hardline-components/test/__screenshots__/diff/`.
+- **`deploy-storybook.yml`** — no changes required (uses root scripts only, no `@ajj/*` refs or `packages/*` paths).
 
 ## Scaffold Script
 
@@ -122,11 +141,11 @@ bash scripts/create-system.sh cobalt co
 **Steps:**
 1. Copy `packages/hardline-tokens` → `packages/<name>-tokens`
 2. Copy `packages/hardline-components` → `packages/<name>-components`
-3. Find-replace throughout both dirs:
-   - `hardline` → `<name>`
-   - `hl-` → `<prefix>-`
+3. Find-replace throughout both dirs — **order is load-bearing, longest patterns first**:
    - `@ajustinjames/hardline` → `@ajustinjames/<name>`
    - `--hl-` → `--<prefix>-`
+   - `hl-` → `<prefix>-`
+   - `hardline` → `<name>`
 4. Wipe `dist/` in both new packages
 5. Print next steps: `pnpm install`, `pnpm --filter @ajustinjames/<name>-tokens build`
 
