@@ -1,0 +1,154 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __DEV__: boolean | undefined;
+}
+
+@customElement('hl-input')
+export class DsInput extends LitElement {
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: stretch;
+      font-family: var(--hl-input-font, var(--hl-alias-font-ui, 'Inter', system-ui, sans-serif));
+      border: 1px solid var(--hl-input-border, var(--hl-alias-surface-border, #1A1A1A));
+      background: var(--hl-input-bg, var(--hl-alias-surface-bg-alt, #F0F0EC));
+      box-shadow: none;
+      transition:
+        background-color var(--hl-alias-transition-smooth, 200ms ease),
+        border-color     var(--hl-alias-transition-smooth, 200ms ease),
+        box-shadow       var(--hl-alias-transition-smooth, 200ms ease);
+    }
+
+    :host(:focus-within) {
+      border-color: var(--hl-global-color-accent, #FF4F00);
+      box-shadow: var(--hl-input-shadow-focus, var(--hl-alias-shadow-accent, 2px 2px 0px #FF4F00));
+      background: var(--hl-alias-surface-bg, #FFFFFF);
+    }
+
+    :host([state='error']) {
+      border-color: var(--hl-input-border-error, var(--hl-alias-status-error, #CC0000));
+    }
+    :host([state='error']:focus-within) {
+      border-color: var(--hl-input-border-error, var(--hl-alias-status-error, #CC0000));
+      box-shadow: var(--hl-input-shadow-error, var(--hl-alias-shadow-error, 2px 2px 0px #CC0000));
+    }
+    :host([state='success']) {
+      border-color: var(--hl-input-border-success, var(--hl-alias-status-success, #1A6B1A));
+    }
+
+    :host([density='compact']) {
+      --hl-input-padding: 4px;
+    }
+
+    :host([disabled]) {
+      pointer-events: none;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    ::slotted([slot='label']) {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      font-family: var(--hl-alias-font-technical, 'JetBrains Mono', monospace);
+      font-size: var(--hl-alias-font-size-label, 11px);
+      letter-spacing: var(--hl-alias-tracking-wide, 0.05em);
+      text-transform: uppercase;
+      color: var(--hl-alias-text-muted, #666666);
+      padding: 0 var(--hl-alias-space-2, 8px);
+      border-right: 1px solid var(--hl-input-border, var(--hl-alias-surface-border, #1A1A1A));
+      background: var(--hl-alias-surface-bg-alt, #F0F0EC);
+      align-self: stretch;
+    }
+
+    ::slotted(input),
+    ::slotted(textarea) {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--hl-input-font, var(--hl-alias-font-ui, 'Inter', system-ui, sans-serif));
+      font-size: var(--hl-input-font-size, 14px);
+      color: var(--hl-input-text, var(--hl-alias-text-main, #1A1A1A));
+      padding: var(--hl-input-padding, var(--hl-alias-input-padding, 8px));
+    }
+
+    :host([data-type='clinical']) ::slotted(input) {
+      font-family: var(--hl-font-mono, 'JetBrains Mono', monospace);
+    }
+
+    ::slotted([slot='unit']) {
+      font-family: var(--hl-font-mono, 'JetBrains Mono', monospace);
+      font-size: 12px;
+      padding: 0 var(--hl-alias-space-2, 8px);
+      border-left: 1px solid var(--hl-input-border, #1A1A1A);
+      color: var(--hl-alias-text-muted, #666666);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+    }
+  `;
+
+  @property({ type: String, reflect: true }) state: 'default' | 'error' | 'success' = 'default';
+  @property({ type: String, reflect: true }) density: 'compact' | 'default' = 'default';
+  @property({ type: String, reflect: true, attribute: 'label-for' }) labelFor?: string;
+  @property({ type: String, reflect: true, attribute: 'data-type' }) dataType?: 'clinical';
+  @property({ type: Boolean, reflect: true }) disabled = false;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    const input = this.querySelector<HTMLElement>(
+      'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
+    );
+    const label = this.querySelector<HTMLElement>('[slot="label"]');
+
+    if (this.labelFor && input && !input.id) {
+      input.id = this.labelFor;
+    }
+    if (this.labelFor && label) {
+      const isNativeLabel = label instanceof HTMLLabelElement;
+      const isDsLabel = label.tagName.toLowerCase() === 'hl-label';
+      if ((isNativeLabel || isDsLabel) && !label.getAttribute('for')) {
+        label.setAttribute('for', this.labelFor);
+      }
+    }
+
+    if (globalThis.__DEV__ !== false && this.disabled) {
+      const native = this.querySelector<HTMLElement>('input, textarea, select');
+      if (native && !native.hasAttribute('disabled')) {
+        console.warn('<hl-input>: `disabled` set on shell but slotted native missing `disabled`. Keep them in sync.');
+      }
+    }
+
+    if (globalThis.__DEV__ !== false) {
+      const associated =
+        (label?.getAttribute('for') && input?.id) ||
+        input?.getAttribute('aria-labelledby') ||
+        input?.getAttribute('aria-label');
+      if (label && input && !associated) {
+        console.warn(
+          '<hl-input>: label/input not associated. Set `label-for="<input-id>"`, or provide `aria-labelledby`/`aria-label` on the input.'
+        );
+      }
+    }
+  }
+
+  render() {
+    return html`
+      <div part="root" style="display:contents">
+        <slot name="label"></slot>
+        <slot></slot>
+        <slot name="unit"></slot>
+      </div>
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'hl-input': DsInput;
+  }
+}

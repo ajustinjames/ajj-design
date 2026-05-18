@@ -24,11 +24,11 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
-  packages/components:
+  packages/hardline-components:
     dependencies:
-      '@ajj/tokens':
+      '@ajustinjames/hardline-tokens':
         specifier: workspace:*
-        version: link:../tokens
+        version: link:../hardline-tokens
       lit:
         specifier: ^3.0.0
         version: 3.3.2
@@ -49,7 +49,7 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
-  packages/tokens:
+  packages/hardline-tokens:
     devDependencies:
       style-dictionary:
         specifier: ^4.0.0
