@@ -7,11 +7,11 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "tokens:build": "pnpm --filter @ajustinjames/hardline-tokens build",
+    "tokens:build": "pnpm -r --filter './packages/*-tokens' build",
     "prestorybook": "pnpm tokens:build",
     "prebuild-storybook": "pnpm tokens:build",
-    "test": "pnpm --filter @ajustinjames/hardline-components test",
-    "test:screenshots": "playwright test --config packages/hardline-components/playwright.config.ts",
+    "test": "pnpm -r --filter './packages/*-components' test",
+    "test:screenshots": "pnpm -r --filter './packages/*-components' test:screenshots",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

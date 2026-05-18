@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "web-test-runner",
+    "test:screenshots": "playwright test",
     "test:watch": "web-test-runner --watch"
   },
   "dependencies": {
