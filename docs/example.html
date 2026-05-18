@@ -15,36 +15,36 @@
         */
         :root {
             /* Colors: High contrast, neutral paper base, industrial accent */
-            --ds-color-bg: #F0F0EC;
-            --ds-color-surface: #FFFFFF;
-            --ds-color-surface-dark: #1A1A1A;
-            --ds-color-text: #1A1A1A;
-            --ds-color-text-muted: #666666;
-            --ds-color-border: #1A1A1A;
-            --ds-color-accent: #FF4F00; /* International Orange */
-            --ds-color-accent-contrast: #FFFFFF;
+            --hl-color-bg: #F0F0EC;
+            --hl-color-surface: #FFFFFF;
+            --hl-color-surface-dark: #1A1A1A;
+            --hl-color-text: #1A1A1A;
+            --hl-color-text-muted: #666666;
+            --hl-color-border: #1A1A1A;
+            --hl-color-accent: #FF4F00; /* International Orange */
+            --hl-color-accent-contrast: #FFFFFF;
             
             /* Elevation: Sharp Cast Shadows (Material Logic, Industrial Aesthetic) */
-            --ds-shadow-1: 2px 2px 0px #000000;
-            --ds-shadow-2: 4px 4px 0px #000000;
-            --ds-shadow-3: 8px 8px 0px #000000;
-            --ds-shadow-inset: inset 1px 1px 0px rgba(0,0,0,0.1);
+            --hl-shadow-1: 2px 2px 0px #000000;
+            --hl-shadow-2: 4px 4px 0px #000000;
+            --hl-shadow-3: 8px 8px 0px #000000;
+            --hl-shadow-inset: inset 1px 1px 0px rgba(0,0,0,0.1);
 
             /* Geometry: No rounded "slop" */
-            --ds-radius-none: 0px;
-            --ds-radius-sm: 2px;
+            --hl-radius-none: 0px;
+            --hl-radius-sm: 2px;
             
             /* Spacing: 4px Grid */
-            --ds-space-1: 4px;
-            --ds-space-2: 8px;
-            --ds-space-3: 12px;
-            --ds-space-4: 16px;
-            --ds-space-6: 24px;
-            --ds-space-8: 32px;
+            --hl-space-1: 4px;
+            --hl-space-2: 8px;
+            --hl-space-3: 12px;
+            --hl-space-4: 16px;
+            --hl-space-6: 24px;
+            --hl-space-8: 32px;
 
             /* Typography */
-            --ds-font-ui: 'Inter', system-ui, sans-serif;
-            --ds-font-mono: 'JetBrains Mono', monospace;
+            --hl-font-ui: 'Inter', system-ui, sans-serif;
+            --hl-font-mono: 'JetBrains Mono', monospace;
         }
 
         /* 2. GLOBAL RESET & BASE 
@@ -54,9 +54,9 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--ds-color-bg);
-            color: var(--ds-color-text);
-            font-family: var(--ds-font-ui);
+            background-color: var(--hl-color-bg);
+            color: var(--hl-color-text);
+            font-family: var(--hl-font-ui);
             font-size: 14px;
             -webkit-font-smoothing: antialiased;
         }
@@ -69,16 +69,16 @@
             top: 0;
             bottom: 0;
             width: 280px;
-            background: var(--ds-color-surface);
-            border-right: 2px solid var(--ds-color-border);
-            padding: var(--ds-space-6);
+            background: var(--hl-color-surface);
+            border-right: 2px solid var(--hl-color-border);
+            padding: var(--hl-space-6);
             overflow-y: auto;
             z-index: 100;
         }
 
         .main-content {
             margin-left: 280px;
-            padding: var(--ds-space-8);
+            padding: var(--hl-space-8);
             max-width: 1200px;
         }
 
@@ -86,9 +86,9 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            margin-bottom: var(--ds-space-8);
-            border-bottom: 2px solid var(--ds-color-border);
-            padding-bottom: var(--ds-space-4);
+            margin-bottom: var(--hl-space-8);
+            border-bottom: 2px solid var(--hl-color-border);
+            padding-bottom: var(--hl-space-4);
         }
 
         /* 4. COMPONENT STYLES (Simulating the "Skin")
@@ -96,109 +96,109 @@
         
         /* The Manifesto Label */
         .manifesto-label {
-            font-family: var(--ds-font-mono);
+            font-family: var(--hl-font-mono);
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--ds-color-text-muted);
+            color: var(--hl-color-text-muted);
             display: flex;
             align-items: center;
-            gap: var(--ds-space-2);
-            margin-bottom: var(--ds-space-4);
+            gap: var(--hl-space-2);
+            margin-bottom: var(--hl-space-4);
         }
         .manifesto-label::before {
             content: "";
             width: 8px;
             height: 8px;
-            background: var(--ds-color-accent);
+            background: var(--hl-color-accent);
         }
 
         /* Industrial Surface/Card */
-        .ds-card {
-            background: var(--ds-color-surface);
-            border: 1px solid var(--ds-color-border);
-            padding: var(--ds-space-6);
-            box-shadow: var(--ds-shadow-1);
+        .hl-card {
+            background: var(--hl-color-surface);
+            border: 1px solid var(--hl-color-border);
+            padding: var(--hl-space-6);
+            box-shadow: var(--hl-shadow-1);
             transition: all 0.1s ease;
             position: relative;
         }
-        .ds-card:hover {
+        .hl-card:hover {
             transform: translate(-1px, -1px);
-            box-shadow: var(--ds-shadow-2);
+            box-shadow: var(--hl-shadow-2);
         }
-        .ds-card[data-elevation="2"] { box-shadow: var(--ds-shadow-2); }
-        .ds-card[data-elevation="3"] { box-shadow: var(--ds-shadow-3); }
+        .hl-card[data-elevation="2"] { box-shadow: var(--hl-shadow-2); }
+        .hl-card[data-elevation="3"] { box-shadow: var(--hl-shadow-3); }
 
         /* Buttons: No pills, high tactile feedback */
-        .ds-btn {
-            font-family: var(--ds-font-mono);
+        .hl-btn {
+            font-family: var(--hl-font-mono);
             text-transform: uppercase;
             font-weight: 600;
             font-size: 12px;
             padding: 10px 16px;
-            border: 1px solid var(--ds-color-border);
-            background: var(--ds-color-surface);
+            border: 1px solid var(--hl-color-border);
+            background: var(--hl-color-surface);
             cursor: pointer;
-            box-shadow: var(--ds-shadow-1);
+            box-shadow: var(--hl-shadow-1);
             transition: all 0.05s linear;
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
-        .ds-btn:hover {
+        .hl-btn:hover {
             transform: translate(-1px, -1px);
-            box-shadow: var(--ds-shadow-2);
+            box-shadow: var(--hl-shadow-2);
         }
-        .ds-btn:active {
+        .hl-btn:active {
             transform: translate(1px, 1px);
             box-shadow: 0px 0px 0px transparent;
         }
-        .ds-btn-primary {
-            background: var(--ds-color-accent);
-            color: var(--ds-color-accent-contrast);
-            border-color: var(--ds-color-accent);
+        .hl-btn-primary {
+            background: var(--hl-color-accent);
+            color: var(--hl-color-accent-contrast);
+            border-color: var(--hl-color-accent);
         }
 
         /* Forms */
-        .ds-input-wrapper {
-            margin-bottom: var(--ds-space-4);
+        .hl-input-wrapper {
+            margin-bottom: var(--hl-space-4);
         }
-        .ds-label {
+        .hl-label {
             display: block;
-            font-family: var(--ds-font-mono);
+            font-family: var(--hl-font-mono);
             font-size: 11px;
             text-transform: uppercase;
-            margin-bottom: var(--ds-space-1);
+            margin-bottom: var(--hl-space-1);
         }
-        .ds-input {
+        .hl-input {
             width: 100%;
-            border: 1px solid var(--ds-color-border);
+            border: 1px solid var(--hl-color-border);
             padding: 10px;
-            font-family: var(--ds-font-ui);
+            font-family: var(--hl-font-ui);
             font-size: 14px;
-            background: var(--ds-color-bg);
-            box-shadow: var(--ds-shadow-inset);
+            background: var(--hl-color-bg);
+            box-shadow: var(--hl-shadow-inset);
         }
-        .ds-input:focus {
+        .hl-input:focus {
             outline: none;
-            background: var(--ds-color-surface);
-            border-color: var(--ds-color-accent);
-            box-shadow: 2px 2px 0px var(--ds-color-accent);
+            background: var(--hl-color-surface);
+            border-color: var(--hl-color-accent);
+            box-shadow: 2px 2px 0px var(--hl-color-accent);
         }
 
         /* Typography */
-        h1, h2, h3 { font-family: var(--ds-font-mono); text-transform: uppercase; margin-top: 0; }
-        .type-label { font-family: var(--ds-font-mono); color: var(--ds-color-accent); font-size: 12px; }
+        h1, h2, h3 { font-family: var(--hl-font-mono); text-transform: uppercase; margin-top: 0; }
+        .type-label { font-family: var(--hl-font-mono); color: var(--hl-color-accent); font-size: 12px; }
 
         /* Grid Utilities */
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--ds-space-6); }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--hl-space-6); }
         
         /* Status Bar Simulation */
         .status-bar {
-            background: var(--ds-color-surface-dark);
+            background: var(--hl-color-surface-dark);
             color: white;
             padding: 4px 12px;
-            font-family: var(--ds-font-mono);
+            font-family: var(--hl-font-mono);
             font-size: 10px;
             display: flex;
             justify-content: space-between;
@@ -210,8 +210,8 @@
 
         /* Custom Scrollbar for the technical look */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--ds-color-bg); }
-        ::-webkit-scrollbar-thumb { background: var(--ds-color-border); }
+        ::-webkit-scrollbar-track { background: var(--hl-color-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--hl-color-border); }
 
     </style>
 </head>
@@ -219,24 +219,24 @@
 
     <aside class="sidebar">
         <div style="margin-bottom: 40px;">
-            <div style="width: 32px; height: 32px; background: var(--ds-color-accent); margin-bottom: 12px;"></div>
+            <div style="width: 32px; height: 32px; background: var(--hl-color-accent); margin-bottom: 12px;"></div>
             <h2 style="font-size: 1.2rem; margin: 0;">IND-MAT<br>CORE</h2>
-            <p style="font-size: 0.8rem; color: var(--ds-color-text-muted);">Industrial Material System</p>
+            <p style="font-size: 0.8rem; color: var(--hl-color-text-muted);">Industrial Material System</p>
         </div>
 
         <nav>
             <div class="manifesto-label">Navigation</div>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="padding: 8px 0; border-bottom: 1px solid #eee; font-weight: 600;">System Atoms</li>
-                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--ds-color-text-muted);">Molecules</li>
-                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--ds-color-text-muted);">Organisms</li>
-                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--ds-color-text-muted);">Sync Config</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--hl-color-text-muted);">Molecules</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--hl-color-text-muted);">Organisms</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; color: var(--hl-color-text-muted);">Sync Config</li>
             </ul>
         </nav>
 
         <div style="margin-top: 60px;">
             <div class="manifesto-label">Manifesto</div>
-            <p style="font-size: 0.75rem; line-height: 1.6; color: var(--ds-color-text-muted);">
+            <p style="font-size: 0.75rem; line-height: 1.6; color: var(--hl-color-text-muted);">
                 1. No Radii > 2px<br>
                 2. No Blurry Shadows<br>
                 3. No Gradients<br>
@@ -253,7 +253,7 @@
             </div>
             <div style="text-align: right;">
                 <div class="type-label">LAST_SYNC</div>
-                <div style="font-family: var(--ds-font-mono); font-size: 14px;">2026-04-21 18:13</div>
+                <div style="font-family: var(--hl-font-mono); font-size: 14px;">2026-04-21 18:13</div>
             </div>
         </header>
 
@@ -261,17 +261,17 @@
         <section style="margin-bottom: 60px;">
             <div class="manifesto-label">01 // Surfaces & Elevation</div>
             <div class="grid-3">
-                <div class="ds-card">
+                <div class="hl-card">
                     <h3>Base Surface</h3>
                     <p>Minimal elevation for standard containers. Uses a 2px offset.</p>
                     <code style="font-size: 11px;">shadow-1: 2px 2px 0px #000</code>
                 </div>
-                <div class="ds-card" data-elevation="2">
+                <div class="hl-card" data-elevation="2">
                     <h3>Elevated</h3>
                     <p>Medium prominence for floating elements or active cards.</p>
                     <code style="font-size: 11px;">shadow-2: 4px 4px 0px #000</code>
                 </div>
-                <div class="ds-card" data-elevation="3">
+                <div class="hl-card" data-elevation="3">
                     <h3>Critical</h3>
                     <p>Highest elevation for modals and high-priority alerts.</p>
                     <code style="font-size: 11px;">shadow-3: 8px 8px 0px #000</code>
@@ -285,24 +285,24 @@
                 <div>
                     <div class="manifesto-label">02 // Interaction Atoms</div>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <button class="ds-btn ds-btn-primary">Execute Protocol</button>
-                        <button class="ds-btn">Secondary Action</button>
-                        <button class="ds-btn" style="box-shadow: none; border-style: dashed;">Ghost State</button>
+                        <button class="hl-btn hl-btn-primary">Execute Protocol</button>
+                        <button class="hl-btn">Secondary Action</button>
+                        <button class="hl-btn" style="box-shadow: none; border-style: dashed;">Ghost State</button>
                     </div>
                 </div>
                 <div style="grid-column: span 2;">
                     <div class="manifesto-label">03 // Input Fields</div>
-                    <div class="ds-card">
-                        <div class="ds-input-wrapper">
-                            <label class="ds-label">System Key Identifier</label>
-                            <input type="text" class="ds-input" placeholder="e.g. CORE-ALPHA-01">
+                    <div class="hl-card">
+                        <div class="hl-input-wrapper">
+                            <label class="hl-label">System Key Identifier</label>
+                            <input type="text" class="hl-input" placeholder="e.g. CORE-ALPHA-01">
                         </div>
-                        <div class="ds-input-wrapper">
-                            <label class="ds-label">Security Protocol</label>
-                            <input type="password" class="ds-input" value="1234567890">
+                        <div class="hl-input-wrapper">
+                            <label class="hl-label">Security Protocol</label>
+                            <input type="password" class="hl-input" value="1234567890">
                         </div>
                         <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-                            <button class="ds-btn ds-btn-primary" style="padding: 6px 12px; font-size: 10px;">Update Record</button>
+                            <button class="hl-btn hl-btn-primary" style="padding: 6px 12px; font-size: 10px;">Update Record</button>
                         </div>
                     </div>
                 </div>
@@ -312,10 +312,10 @@
         <!-- Section: Color Tokens -->
         <section>
             <div class="manifesto-label">04 // Palette & Sync Data</div>
-            <div class="ds-card" style="padding: 0;">
-                <table style="width: 100%; border-collapse: collapse; font-family: var(--ds-font-mono); font-size: 11px;">
+            <div class="hl-card" style="padding: 0;">
+                <table style="width: 100%; border-collapse: collapse; font-family: var(--hl-font-mono); font-size: 11px;">
                     <thead>
-                        <tr style="border-bottom: 1px solid var(--ds-color-border); text-align: left;">
+                        <tr style="border-bottom: 1px solid var(--hl-color-border); text-align: left;">
                             <th style="padding: 12px;">Token Name</th>
                             <th style="padding: 12px;">Value</th>
                             <th style="padding: 12px;">Web (CSS)</th>
@@ -326,19 +326,19 @@
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 12px;">color.accent</td>
                             <td style="padding: 12px;"><div style="display:inline-block; width:12px; height:12px; background:#FF4F00; vertical-align:middle; margin-right:8px;"></div> #FF4F00</td>
-                            <td style="padding: 12px;">var(--ds-color-accent)</td>
+                            <td style="padding: 12px;">var(--hl-color-accent)</td>
                             <td style="padding: 12px;">AppColors.accent</td>
                         </tr>
                         <tr style="border-bottom: 1px solid #eee;">
                             <td style="padding: 12px;">color.bg</td>
                             <td style="padding: 12px;"><div style="display:inline-block; width:12px; height:12px; background:#F0F0EC; vertical-align:middle; border:1px solid #ccc; margin-right:8px;"></div> #F0F0EC</td>
-                            <td style="padding: 12px;">var(--ds-color-bg)</td>
+                            <td style="padding: 12px;">var(--hl-color-bg)</td>
                             <td style="padding: 12px;">AppColors.background</td>
                         </tr>
                         <tr>
                             <td style="padding: 12px;">spacing.md</td>
                             <td style="padding: 12px;">16px</td>
-                            <td style="padding: 12px;">var(--ds-space-4)</td>
+                            <td style="padding: 12px;">var(--hl-space-4)</td>
                             <td style="padding: 12px;">AppSpacing.md</td>
                         </tr>
                     </tbody>

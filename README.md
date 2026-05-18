@@ -1,6 +1,6 @@
 # ajj-design
 
-Industrial-material design system. Framework-agnostic Web Components built with Lit. Design tokens compiled via Style Dictionary to CSS custom properties (web) and Dart classes (Flutter) from a single source of truth.
+Industrial-material design system platform. The current system is `hardline`: framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary to CSS custom properties from a single source of truth.
 
 ## Design Principles
 
@@ -15,29 +15,30 @@ Industrial-material design system. Framework-agnostic Web Components built with 
 
 | Package | Name | Purpose |
 |---|---|---|
-| `packages/tokens` | `@ajj/tokens` | `tokens.json` → Style Dictionary → `dist/web/tokens.css` + `dist/flutter/*.dart` |
-| `packages/components` | `@ajj/components` | Lit Web Components consuming token CSS vars |
+| `packages/hardline-tokens` | `@ajustinjames/hardline-tokens` | `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
+| `packages/hardline-components` | `@ajustinjames/hardline-components` | Lit Web Components consuming token CSS vars |
 
 ## Commands
 
 ```bash
 pnpm install             # install deps
-pnpm tokens:build        # compile tokens (run after any tokens.json change)
-pnpm test                # run component tests (Playwright/Chromium, headless)
+pnpm tokens:build        # compile all system token packages
+pnpm test                # run all component tests (Playwright/Chromium, headless)
+pnpm test:screenshots    # run all component screenshot tests
 pnpm storybook           # launch Storybook at localhost:6006
 pnpm build-storybook     # build static Storybook
 ```
 
 ## Components
 
-### `<ds-btn>`
+### `<hl-btn>`
 
 Button wrapper — slot-based, style-only. Wrap any `<button>` or `<a>`.
 
 ```html
-<ds-btn variant="primary" size="md">
+<hl-btn variant="primary" size="md">
   <button>Submit</button>
-</ds-btn>
+</hl-btn>
 ```
 
 | Attribute | Values | Default |
@@ -49,15 +50,15 @@ Slots: `prefix`, default, `suffix`.
 
 ---
 
-### `<ds-card>`
+### `<hl-card>`
 
 Surface container with hard-cast shadow and hover lift.
 
 ```html
-<ds-card elevation="2">
+<hl-card elevation="2">
   <span slot="header">Title</span>
   <p>Content</p>
-</ds-card>
+</hl-card>
 ```
 
 | Attribute | Values | Default |
@@ -68,21 +69,21 @@ Slots: `header`, default.
 
 ---
 
-### `<ds-input>`
+### `<hl-input>`
 
 Input wrapper with inline label and unit support. Manages label/input association across shadow DOM.
 
 ```html
-<ds-input label-for="email" state="default">
+<hl-input label-for="email" state="default">
   <label slot="label">Email</label>
   <input id="email" type="email" />
-</ds-input>
+</hl-input>
 
 <!-- with unit suffix -->
-<ds-input>
+<hl-input>
   <input type="number" />
   <span slot="unit">kg</span>
-</ds-input>
+</hl-input>
 ```
 
 | Attribute | Values | Default |
@@ -98,12 +99,12 @@ Slots: `label`, default (input/textarea), `unit`.
 
 ---
 
-### `<ds-label>`
+### `<hl-label>`
 
 Standalone label — JetBrains Mono, uppercase, wide tracking.
 
 ```html
-<ds-label for="email">Email</ds-label>
+<hl-label for="email">Email</hl-label>
 <input id="email" />
 ```
 
@@ -127,22 +128,22 @@ component → per-component overrides
 Components use a three-level fallback:
 
 ```css
-var(--ds-btn-bg, var(--ds-alias-action-bg, #FFFFFF))
+var(--hl-btn-bg, var(--hl-alias-action-bg, #FFFFFF))
 /*  component      alias token        hard fallback  */
 ```
 
 Override at any tier by setting the CSS custom property.
 
-Run `pnpm tokens:build` after any `tokens.json` change to regenerate `dist/web/tokens.css` and Flutter Dart classes.
+Run `pnpm tokens:build` after any `tokens.json` change to regenerate `dist/web/tokens.css`.
 
 ## Adding a Component
 
 Each new component needs:
 
-1. `packages/components/src/ds-<name>/ds-<name>.ts`
-2. `packages/components/test/ds-<name>.test.ts`
-3. `packages/components/stories/ds-<name>.stories.ts`
-4. Barrel export in `packages/components/src/index.ts`
+1. `packages/<system>-components/src/ds-<name>/ds-<name>.ts`
+2. `packages/<system>-components/test/ds-<name>.test.ts`
+3. `packages/<system>-components/stories/ds-<name>.stories.ts`
+4. Barrel export in `packages/<system>-components/src/index.ts`
 
 All components extend `LitElement`. Properties that affect style use `reflect: true`. No internal state — visual shells only.
 

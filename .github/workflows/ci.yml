@@ -37,7 +37,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Type check
-        run: pnpm --filter @ajj/components exec tsc --noEmit
+        run: pnpm --filter @ajustinjames/hardline-components exec tsc --noEmit
 
       - name: Build tokens
         run: pnpm tokens:build
@@ -53,4 +53,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: screenshot-diffs
-          path: packages/components/test/__screenshots__/diff/
+          path: packages/hardline-components/test/__screenshots__/diff/

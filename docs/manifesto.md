@@ -38,7 +38,7 @@ Documentation: Every component MUST have a Storybook 10.x file.
 
 Sync Logic: Any change to tokens.json must trigger a build for both tokens.css and tokens.dart.
 
-Naming: Follow the ds- prefix for all components (e.g., <ds-button>, <ds-card>).
+Naming: Follow the hl- prefix for all components (e.g., <hl-btn>, <hl-card>).
 
 4. Coding Standards
 

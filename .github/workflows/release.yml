@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse release label
+        id: label
+        env:
+          LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          mapfile -t LABELS < <(printf '%s\n' "$LABELS_JSON" | jq -r '.[] | select(test("^[a-z][a-z0-9-]*:(patch|minor|major)$"))')
+
+          if [ "${#LABELS[@]}" -eq 0 ]; then
+            echo "No release label; skipping publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${#LABELS[@]}" -gt 1 ]; then
+            printf '::error::Expected one release label, found: %s\n' "${LABELS[*]}"
+            exit 1
+          fi
+
+          LABEL="${LABELS[0]}"
+          SYSTEM="${LABEL%%:*}"
+          BUMP="${LABEL##*:}"
+          TOKENS_PKG="packages/${SYSTEM}-tokens/package.json"
+          COMPONENTS_PKG="packages/${SYSTEM}-components/package.json"
+
+          if [ ! -f "$TOKENS_PKG" ] || [ ! -f "$COMPONENTS_PKG" ]; then
+            echo "::error::No package pair found for release system '${SYSTEM}'"
+            exit 1
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "system=${SYSTEM}" >> "$GITHUB_OUTPUT"
+          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v3
+        if: steps.label.outputs.skip != 'true'
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        if: steps.label.outputs.skip != 'true'
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        if: steps.label.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Bump package versions
+        if: steps.label.outputs.skip != 'true'
+        id: version
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
+          BUMP: ${{ steps.label.outputs.bump }}
+        run: |
+          TOKENS_PKG="packages/${SYSTEM}-tokens/package.json"
+          COMPONENTS_PKG="packages/${SYSTEM}-components/package.json"
+
+          CURRENT=$(jq -r '.version' "$TOKENS_PKG")
+          COMPONENTS_CURRENT=$(jq -r '.version' "$COMPONENTS_PKG")
+
+          if [ "$CURRENT" != "$COMPONENTS_CURRENT" ]; then
+            echo "::error::Package versions differ before release: tokens=${CURRENT}, components=${COMPONENTS_CURRENT}"
+            exit 1
+          fi
+
+          if ! [[ "$CURRENT" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+            echo "::error::Unsupported package version '${CURRENT}'; expected major.minor.patch"
+            exit 1
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          TMP="$(mktemp)"
+          jq --arg v "$NEW" '.version = $v' "$TOKENS_PKG" > "$TMP" && mv "$TMP" "$TOKENS_PKG"
+          TMP="$(mktemp)"
+          jq --arg v "$NEW" '.version = $v' "$COMPONENTS_PKG" > "$TMP" && mv "$TMP" "$COMPONENTS_PKG"
+
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag release
+        if: steps.label.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "packages/${SYSTEM}-tokens/package.json" "packages/${SYSTEM}-components/package.json"
+          git commit -m "chore: release ${SYSTEM}-v${VERSION}"
+          git tag "${SYSTEM}-v${VERSION}"
+
+      - name: Build packages
+        if: steps.label.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
+        run: |
+          pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
+          pnpm --filter "@ajustinjames/${SYSTEM}-components" build
+
+      - name: Publish to npm
+        if: steps.label.outputs.skip != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          SYSTEM: ${{ steps.label.outputs.system }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret is required to publish"
+            exit 1
+          fi
+
+          pnpm --dir "packages/${SYSTEM}-tokens" publish --access public --no-git-checks
+          pnpm --dir "packages/${SYSTEM}-components" publish --access public --no-git-checks
+
+      - name: Push release commit and tag
+        if: steps.label.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: git push origin HEAD:main "refs/tags/${SYSTEM}-v${VERSION}"
+
+      - name: Create GitHub release
+        if: steps.label.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYSTEM: ${{ steps.label.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "${SYSTEM}-v${VERSION}" --title "${SYSTEM} v${VERSION}" --generate-notes

@@ -1,5 +1,5 @@
-import '../packages/tokens/dist/web/tokens.css';
-import '../packages/tokens/dist/web/tokens-dark.css';
+import '../packages/hardline-tokens/dist/web/tokens.css';
+import '../packages/hardline-tokens/dist/web/tokens-dark.css';
 import type { Preview } from '@storybook/web-components';
 
 const preview: Preview = {
