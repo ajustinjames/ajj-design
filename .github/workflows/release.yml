@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,9 +60,13 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.label.outputs.skip != 'true'
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        if: steps.label.outputs.skip != 'true'
+        run: npm install -g npm@^11.5.1
 
       - name: Install dependencies
         if: steps.label.outputs.skip != 'true'
@@ -128,17 +133,9 @@ jobs:
 
       - name: Publish to npm
         if: steps.label.outputs.skip != 'true'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          SYSTEM: ${{ steps.label.outputs.system }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN secret is required to publish"
-            exit 1
-          fi
-
-          pnpm --dir "packages/${SYSTEM}-tokens" publish --access public --no-git-checks
-          pnpm --dir "packages/${SYSTEM}-components" publish --access public --no-git-checks
+          npm publish "packages/${{ steps.label.outputs.system }}-tokens" --access public
+          npm publish "packages/${{ steps.label.outputs.system }}-components" --access public
 
       - name: Push release commit and tag
         if: steps.label.outputs.skip != 'true'

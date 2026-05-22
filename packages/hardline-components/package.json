@@ -2,6 +2,11 @@
   "name": "@ajustinjames/hardline-components",
   "version": "0.0.1",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajustinjames/ajj-design.git",
+    "directory": "packages/hardline-components"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
