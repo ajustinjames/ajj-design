@@ -133,9 +133,14 @@ jobs:
 
       - name: Publish to npm
         if: steps.label.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
         run: |
-          npm publish "packages/${{ steps.label.outputs.system }}-tokens" --access public
-          npm publish "packages/${{ steps.label.outputs.system }}-components" --access public
+          cd "packages/${SYSTEM}-tokens"
+          npm publish . --access public
+
+          cd "../${SYSTEM}-components"
+          npm publish . --access public
 
       - name: Push release commit and tag
         if: steps.label.outputs.skip != 'true'
