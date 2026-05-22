@@ -2,6 +2,11 @@
   "name": "@ajustinjames/hardline-tokens",
   "version": "0.0.1",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajustinjames/ajj-design.git",
+    "directory": "packages/hardline-tokens"
+  },
   "exports": {
     ".": "./dist/web/tokens.css",
     "./css": "./dist/web/tokens.css",
