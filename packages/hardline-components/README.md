@@ -4,6 +4,8 @@ Framework-agnostic Web Components for the Hardline industrial-material design sy
 
 Hardline components are built with Lit and registered as `hl-*` custom elements. They are visual shells only: application state, routing, form submission, and data loading stay in the consuming app.
 
+Live Storybook: https://ajustinjames.github.io/ajj-design/
+
 ## Install
 
 ```bash
