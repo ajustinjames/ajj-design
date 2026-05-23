@@ -4,15 +4,17 @@ import '../src/ds-card/ds-card.js';
 
 type DsCardArgs = { elevation: 1 | 2 | 3; withHeader: boolean };
 
+const renderCard = (elevation: 1 | 2 | 3, withHeader = false) => html`
+  <hl-card elevation="${elevation}" style="max-width:260px;">
+    ${withHeader ? html`<strong slot="header">SYSTEM NODE ${elevation}</strong>` : ''}
+    <p style="margin:0;">Industrial surface at elevation ${elevation}.</p>
+  </hl-card>
+`;
+
 const meta: Meta<DsCardArgs> = {
   title: 'Atoms/hl-card',
   tags: ['autodocs'],
-  render: ({ elevation, withHeader }) => html`
-    <hl-card elevation="${elevation}">
-      ${withHeader ? html`<strong slot="header">Card Header</strong>` : ''}
-      <p>Body content — industrial surface at elevation ${elevation}.</p>
-    </hl-card>
-  `,
+  render: ({ elevation, withHeader }) => renderCard(elevation, withHeader),
   argTypes: {
     elevation: { control: { type: 'radio' }, options: [1, 2, 3] },
     withHeader: { control: 'boolean' },
@@ -27,6 +29,15 @@ export const Elevation1: Story = { args: { elevation: 1 } };
 export const Elevation2: Story = { args: { elevation: 2 } };
 export const Elevation3: Story = { args: { elevation: 3 } };
 export const WithHeader: Story = { args: { elevation: 1, withHeader: true } };
+export const AllElevations: Story = {
+  render: () => html`
+    <div style="display:flex;gap:20px;align-items:flex-start;">
+      ${renderCard(1, true)}
+      ${renderCard(2, true)}
+      ${renderCard(3, true)}
+    </div>
+  `,
+};
 export const HoverState: Story = {
   args: { elevation: 1 },
   parameters: { pseudo: { hover: true } },

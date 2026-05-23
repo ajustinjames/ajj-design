@@ -88,6 +88,7 @@ export class DsTooltip extends LitElement {
   #show(): void {
     this._visible = true;
     this.#reposition();
+    void this.updateComplete.then(() => this.#reposition());
   }
 
   #hide(): void {
@@ -96,13 +97,26 @@ export class DsTooltip extends LitElement {
 
   #reposition(): void {
     if (!this.#anchor) return;
-    const r = this.#anchor.getBoundingClientRect();
+    const anchorRect = this.#anchor.getBoundingClientRect();
+    const surfaceRect = this.shadowRoot?.querySelector<HTMLElement>('[role="tooltip"]')?.getBoundingClientRect();
     const OFFSET = 8;
     switch (this.placement) {
-      case 'bottom': this._x = r.left; this._y = r.bottom + OFFSET; break;
-      case 'left':   this._x = r.left - OFFSET; this._y = r.top; break;
-      case 'right':  this._x = r.right + OFFSET; this._y = r.top; break;
-      default:       this._x = r.left; this._y = r.top - OFFSET; break;
+      case 'bottom':
+        this._x = anchorRect.left;
+        this._y = anchorRect.bottom + OFFSET;
+        break;
+      case 'left':
+        this._x = anchorRect.left - (surfaceRect?.width ?? 0) - OFFSET;
+        this._y = anchorRect.top;
+        break;
+      case 'right':
+        this._x = anchorRect.right + OFFSET;
+        this._y = anchorRect.top;
+        break;
+      default:
+        this._x = anchorRect.left;
+        this._y = anchorRect.top - (surfaceRect?.height ?? 0) - OFFSET;
+        break;
     }
   }
 

@@ -9,6 +9,14 @@ StyleDictionary.registerFormat({
 });
 
 StyleDictionary.registerFormat({
+  name: 'css/root-variables',
+  format: ({ dictionary }) => {
+    const lines = dictionary.allTokens.map(t => `  --${t.name}: ${t.$value};`);
+    return `:root {\n${lines.join('\n')}\n}\n`;
+  },
+});
+
+StyleDictionary.registerFormat({
   name: 'css/dark-theme',
   format: ({ dictionary }) => {
     const lines = dictionary.allTokens.map(t => {
@@ -41,6 +49,11 @@ const sd = new StyleDictionary({
       files: [
         {
           destination: 'tokens.css',
+          format: 'css/root-variables',
+          filter: (token) => token.path[0] !== 'aliasDark',
+        },
+        {
+          destination: 'tokens-theme.css',
           format: 'css/tailwind-theme',
           filter: (token) => token.path[0] !== 'aliasDark',
         },

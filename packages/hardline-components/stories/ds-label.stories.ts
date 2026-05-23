@@ -21,6 +21,15 @@ type Story = StoryObj<DsLabelArgs>;
 export const Default: Story = { args: { tone: 'default' } };
 export const Muted: Story = { args: { tone: 'muted' } };
 export const Accent: Story = { args: { tone: 'accent' } };
+export const AllTones: Story = {
+  render: () => html`
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <hl-label tone="default">Default Label</hl-label>
+      <hl-label tone="muted">Muted Label</hl-label>
+      <hl-label tone="accent">Accent Label</hl-label>
+    </div>
+  `,
+};
 export const PairedWithInput: Story = {
   render: () => html`
     <div style="display:flex;flex-direction:column;gap:4px;width:240px;">

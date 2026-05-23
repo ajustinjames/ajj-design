@@ -35,6 +35,7 @@ import '@ajustinjames/hardline-tokens';
 - `@ajustinjames/hardline-tokens` - light theme CSS
 - `@ajustinjames/hardline-tokens/css` - light theme CSS
 - `@ajustinjames/hardline-tokens/css-dark` - dark theme CSS overrides
+- `@ajustinjames/hardline-tokens/theme` - Tailwind `@theme` token output
 
 ## Development
 

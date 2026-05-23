@@ -10,7 +10,8 @@
   "exports": {
     ".": "./dist/web/tokens.css",
     "./css": "./dist/web/tokens.css",
-    "./css-dark": "./dist/web/tokens-dark.css"
+    "./css-dark": "./dist/web/tokens-dark.css",
+    "./theme": "./dist/web/tokens-theme.css"
   },
   "files": ["dist"],
   "publishConfig": {

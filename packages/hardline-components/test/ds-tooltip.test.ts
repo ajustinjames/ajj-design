@@ -28,4 +28,42 @@ describe('hl-tooltip', () => {
     expect(getComputedStyle(surface).display).to.equal('none');
     btn.remove();
   });
+
+  it('positions top placement above the anchor', async () => {
+    const btn = document.createElement('button');
+    btn.id = 'tip-position-anchor';
+    btn.getBoundingClientRect = () => ({
+      x: 40,
+      y: 100,
+      top: 100,
+      right: 140,
+      bottom: 124,
+      left: 40,
+      width: 100,
+      height: 24,
+      toJSON: () => {},
+    });
+    document.body.appendChild(btn);
+
+    const el = await fixture<DsTooltip>(html`<hl-tooltip for="tip-position-anchor">hint</hl-tooltip>`);
+    const surface = el.shadowRoot!.querySelector<HTMLElement>('[role="tooltip"]')!;
+    surface.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 48,
+      bottom: 20,
+      left: 0,
+      width: 48,
+      height: 20,
+      toJSON: () => {},
+    });
+
+    btn.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    await el.updateComplete;
+    await el.updateComplete;
+
+    expect(surface.style.top).to.equal('72px');
+    btn.remove();
+  });
 });
