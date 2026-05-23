@@ -2,6 +2,8 @@
 
 Industrial-material design system platform. The current system is `hardline`: framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary to CSS custom properties from a single source of truth.
 
+Live Storybook: https://ajustinjames.github.io/ajj-design/
+
 ## Design Principles
 
 - **0px corner radii** — no pills, no rounded corners

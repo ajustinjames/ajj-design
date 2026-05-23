@@ -1,6 +1,6 @@
 {
   "name": "@ajustinjames/hardline-tokens",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "repository": {
     "type": "git",
@@ -10,7 +10,8 @@
   "exports": {
     ".": "./dist/web/tokens.css",
     "./css": "./dist/web/tokens.css",
-    "./css-dark": "./dist/web/tokens-dark.css"
+    "./css-dark": "./dist/web/tokens-dark.css",
+    "./theme": "./dist/web/tokens-theme.css"
   },
   "files": ["dist"],
   "publishConfig": {

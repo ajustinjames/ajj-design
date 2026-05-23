@@ -4,6 +4,8 @@ Design tokens for the Hardline industrial-material design system.
 
 This package ships compiled CSS custom properties generated from the Hardline token source. Use it before loading `@ajustinjames/hardline-components` so components can read the `--hl-*` variables.
 
+Live Storybook: https://ajustinjames.github.io/ajj-design/
+
 ## Install
 
 ```bash
@@ -35,6 +37,7 @@ import '@ajustinjames/hardline-tokens';
 - `@ajustinjames/hardline-tokens` - light theme CSS
 - `@ajustinjames/hardline-tokens/css` - light theme CSS
 - `@ajustinjames/hardline-tokens/css-dark` - dark theme CSS overrides
+- `@ajustinjames/hardline-tokens/theme` - Tailwind `@theme` token output
 
 ## Development
 

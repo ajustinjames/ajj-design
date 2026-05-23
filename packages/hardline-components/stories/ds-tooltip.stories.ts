@@ -1,5 +1,6 @@
 import { html } from 'lit';
 import type { Meta, StoryObj } from '@storybook/web-components';
+import '../src/ds-btn/ds-btn.js';
 import '../src/ds-tooltip/ds-tooltip.js';
 
 const meta: Meta = {
@@ -7,9 +8,9 @@ const meta: Meta = {
   tags: ['autodocs'],
   render: ({ placement, content }) => html`
     <div style="padding:60px;display:inline-block;">
-      <button id="tooltip-anchor" style="padding:8px 16px;border:1px solid #1A1A1A;cursor:pointer;">
-        Hover me
-      </button>
+      <hl-btn variant="default" size="sm">
+        <button id="tooltip-anchor" type="button">Inspect Node</button>
+      </hl-btn>
       <hl-tooltip for="tooltip-anchor" placement="${placement}">${content}</hl-tooltip>
     </div>
   `,

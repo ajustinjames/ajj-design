@@ -8,14 +8,16 @@ type DsBtnArgs = {
   label: string;
 };
 
+const renderButton = (variant: DsBtnArgs['variant'], size: DsBtnArgs['size'], label: string) => html`
+  <hl-btn variant="${variant}" size="${size}">
+    <button type="button">${label}</button>
+  </hl-btn>
+`;
+
 const meta: Meta<DsBtnArgs> = {
   title: 'Atoms/hl-btn',
   tags: ['autodocs'],
-  render: ({ variant, size, label }) => html`
-    <hl-btn variant="${variant}" size="${size}">
-      <button type="button">${label}</button>
-    </hl-btn>
-  `,
+  render: ({ variant, size, label }) => renderButton(variant, size, label),
   argTypes: {
     variant: { control: { type: 'radio' }, options: ['default', 'primary', 'ghost'] },
     size: { control: { type: 'radio' }, options: ['sm', 'md'] },
@@ -32,6 +34,16 @@ export const Primary: Story = { args: { variant: 'primary' } };
 export const Ghost: Story = { args: { variant: 'ghost' } };
 export const SmDefault: Story = { args: { size: 'sm', variant: 'default' } };
 export const SmPrimary: Story = { args: { size: 'sm', variant: 'primary' } };
+export const AllVariants: Story = {
+  render: () => html`
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+      ${renderButton('default', 'md', 'Default')}
+      ${renderButton('primary', 'md', 'Primary')}
+      ${renderButton('ghost', 'md', 'Ghost')}
+      ${renderButton('default', 'sm', 'Small')}
+    </div>
+  `,
+};
 export const FocusVisible: Story = {
   args: { variant: 'default' },
   parameters: { pseudo: { focusVisible: true } },
