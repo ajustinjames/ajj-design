@@ -72,7 +72,7 @@ jobs:
         if: steps.label.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Validate release version
+      - name: Bump package versions
         if: steps.label.outputs.skip != 'true'
         id: version
         env:
@@ -95,11 +95,21 @@ jobs:
             exit 1
           fi
 
+          TOKENS_PUBLISHED_FOUND=true
+          COMPONENTS_PUBLISHED_FOUND=true
+
           if ! TOKENS_PUBLISHED=$(npm view "@ajustinjames/${SYSTEM}-tokens" version 2>/dev/null); then
             TOKENS_PUBLISHED="0.0.0"
+            TOKENS_PUBLISHED_FOUND=false
           fi
           if ! COMPONENTS_PUBLISHED=$(npm view "@ajustinjames/${SYSTEM}-components" version 2>/dev/null); then
             COMPONENTS_PUBLISHED="0.0.0"
+            COMPONENTS_PUBLISHED_FOUND=false
+          fi
+
+          if [ "$TOKENS_PUBLISHED_FOUND" != "$COMPONENTS_PUBLISHED_FOUND" ]; then
+            echo "::error::Published package state differs: tokens found=${TOKENS_PUBLISHED_FOUND}, components found=${COMPONENTS_PUBLISHED_FOUND}"
+            exit 1
           fi
 
           if [ "$TOKENS_PUBLISHED" != "$COMPONENTS_PUBLISHED" ]; then
@@ -112,7 +122,12 @@ jobs:
             exit 1
           fi
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$TOKENS_PUBLISHED"
+          if [ "$TOKENS_PUBLISHED_FOUND" = true ] && [ "$CURRENT" != "$TOKENS_PUBLISHED" ]; then
+            echo "::error::Package version ${CURRENT} does not match published version ${TOKENS_PUBLISHED}. Resolve release state before publishing."
+            exit 1
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           case "$BUMP" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
@@ -122,17 +137,17 @@ jobs:
 
           EXPECTED="${MAJOR}.${MINOR}.${PATCH}"
 
-          if [ "$CURRENT" != "$EXPECTED" ]; then
-            echo "::error::Release label '${SYSTEM}:${BUMP}' expects package version ${EXPECTED}, but package.json has ${CURRENT}. Bump both package manifests in the PR before merging."
+          if git rev-parse "${SYSTEM}-v${EXPECTED}" >/dev/null 2>&1; then
+            echo "::error::Tag ${SYSTEM}-v${EXPECTED} already exists"
             exit 1
           fi
 
-          if git rev-parse "${SYSTEM}-v${CURRENT}" >/dev/null 2>&1; then
-            echo "::error::Tag ${SYSTEM}-v${CURRENT} already exists"
-            exit 1
-          fi
+          TMP="$(mktemp)"
+          jq --arg v "$EXPECTED" '.version = $v' "$TOKENS_PKG" > "$TMP" && mv "$TMP" "$TOKENS_PKG"
+          TMP="$(mktemp)"
+          jq --arg v "$EXPECTED" '.version = $v' "$COMPONENTS_PKG" > "$TMP" && mv "$TMP" "$COMPONENTS_PKG"
 
-          echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "version=$EXPECTED" >> "$GITHUB_OUTPUT"
 
       - name: Build packages
         if: steps.label.outputs.skip != 'true'
@@ -141,6 +156,19 @@ jobs:
         run: |
           pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
           pnpm --filter "@ajustinjames/${SYSTEM}-components" build
+
+      - name: Commit and tag release
+        if: steps.label.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.label.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "packages/${SYSTEM}-tokens/package.json" "packages/${SYSTEM}-components/package.json"
+          git commit -m "chore: release ${SYSTEM}-v${VERSION}"
+          git tag "${SYSTEM}-v${VERSION}"
+          git push origin main --follow-tags
 
       - name: Publish to npm
         if: steps.label.outputs.skip != 'true'
@@ -152,15 +180,6 @@ jobs:
 
           cd "../${SYSTEM}-components"
           npm publish . --access public
-
-      - name: Push release tag
-        if: steps.label.outputs.skip != 'true'
-        env:
-          SYSTEM: ${{ steps.label.outputs.system }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          git tag "${SYSTEM}-v${VERSION}"
-          git push origin "refs/tags/${SYSTEM}-v${VERSION}"
 
       - name: Create GitHub release
         if: steps.label.outputs.skip != 'true'
