@@ -31,6 +31,29 @@ pnpm storybook
 pnpm build-storybook
 ```
 
+## Release Workflow
+
+Releases are PR-driven. Do not make the GitHub Actions release workflow mutate
+package manifests or push commits back to `main`.
+
+For a package release:
+- Bump both package manifests in the PR:
+  - `packages/hardline-tokens/package.json`
+  - `packages/hardline-components/package.json`
+- Keep both package versions identical.
+- The manifest bump must be the next valid semver relative to the currently
+  published npm version. For example, if npm has `0.0.2`, both manifests can
+  move to `0.0.3`, `0.1.0`, or `1.0.0`.
+
+The release workflow infers whether to publish from the package manifest version
+changes. It validates that both packages have the same target version, verifies
+that neither package has already published that exact version, builds both
+packages, pushes the release tag, publishes to npm, and creates the GitHub
+release. No package manifest version change means no publish.
+
+For docs, infrastructure, Storybook-only, or other non-package changes, do not
+bump package manifests.
+
 ## Architecture
 
 ### Package structure

@@ -19,27 +19,36 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Parse release label
-        id: label
+      - name: Detect release package
+        id: detect
         env:
-          LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          mapfile -t LABELS < <(printf '%s\n' "$LABELS_JSON" | jq -r '.[] | select(test("^[a-z][a-z0-9-]*:(patch|minor|major)$"))')
+          mapfile -t CHANGED_PACKAGE_MANIFESTS < <(git diff --name-only "$BASE_SHA" HEAD -- 'packages/*/package.json')
 
-          if [ "${#LABELS[@]}" -eq 0 ]; then
-            echo "No release label; skipping publish"
+          if [ "${#CHANGED_PACKAGE_MANIFESTS[@]}" -eq 0 ]; then
+            echo "No package manifest changes; skipping publish"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ "${#LABELS[@]}" -gt 1 ]; then
-            printf '::error::Expected one release label, found: %s\n' "${LABELS[*]}"
+          SYSTEMS=$(printf '%s\n' "${CHANGED_PACKAGE_MANIFESTS[@]}" \
+            | sed -nE 's#^packages/([a-z][a-z0-9-]*)-(tokens|components)/package[.]json$#\1#p' \
+            | sort -u)
+
+          if [ -z "$SYSTEMS" ]; then
+            echo "No release package pair changed; skipping publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          SYSTEM_COUNT=$(printf '%s\n' "$SYSTEMS" | wc -l | tr -d ' ')
+          if [ "$SYSTEM_COUNT" -ne 1 ]; then
+            printf '::error::Expected package manifest changes for one release system, found: %s\n' "$SYSTEMS"
             exit 1
           fi
 
-          LABEL="${LABELS[0]}"
-          SYSTEM="${LABEL%%:*}"
-          BUMP="${LABEL##*:}"
+          SYSTEM="$SYSTEMS"
           TOKENS_PKG="packages/${SYSTEM}-tokens/package.json"
           COMPONENTS_PKG="packages/${SYSTEM}-components/package.json"
 
@@ -48,36 +57,46 @@ jobs:
             exit 1
           fi
 
+          TOKENS_CHANGED=false
+          COMPONENTS_CHANGED=false
+          for manifest in "${CHANGED_PACKAGE_MANIFESTS[@]}"; do
+            [ "$manifest" = "$TOKENS_PKG" ] && TOKENS_CHANGED=true
+            [ "$manifest" = "$COMPONENTS_PKG" ] && COMPONENTS_CHANGED=true
+          done
+
+          if [ "$TOKENS_CHANGED" != "$COMPONENTS_CHANGED" ]; then
+            echo "::error::Release package manifests must change together for '${SYSTEM}'"
+            exit 1
+          fi
+
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "system=${SYSTEM}" >> "$GITHUB_OUTPUT"
-          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v3
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true'
         with:
           version: 10
 
       - uses: actions/setup-node@v4
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true'
         with:
           node-version: '24'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true'
         run: npm install -g npm@^11.5.1
 
       - name: Install dependencies
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Bump package versions
-        if: steps.label.outputs.skip != 'true'
+      - name: Validate release version
+        if: steps.detect.outputs.skip != 'true'
         id: version
         env:
-          SYSTEM: ${{ steps.label.outputs.system }}
-          BUMP: ${{ steps.label.outputs.bump }}
+          SYSTEM: ${{ steps.detect.outputs.system }}
         run: |
           TOKENS_PKG="packages/${SYSTEM}-tokens/package.json"
           COMPONENTS_PKG="packages/${SYSTEM}-components/package.json"
@@ -122,58 +141,69 @@ jobs:
             exit 1
           fi
 
-          if [ "$TOKENS_PUBLISHED_FOUND" = true ] && [ "$CURRENT" != "$TOKENS_PUBLISHED" ]; then
-            echo "::error::Package version ${CURRENT} does not match published version ${TOKENS_PUBLISHED}. Resolve release state before publishing."
-            exit 1
+          if [ "$CURRENT" = "$TOKENS_PUBLISHED" ]; then
+            echo "Package manifest versions did not change from the published version; skipping publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          IFS='.' read -r PUBLISHED_MAJOR PUBLISHED_MINOR PUBLISHED_PATCH <<< "$TOKENS_PUBLISHED"
+          IFS='.' read -r CURRENT_MAJOR CURRENT_MINOR CURRENT_PATCH <<< "$CURRENT"
 
-          case "$BUMP" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
+          PATCH_VERSION="${PUBLISHED_MAJOR}.${PUBLISHED_MINOR}.$((PUBLISHED_PATCH + 1))"
+          MINOR_VERSION="${PUBLISHED_MAJOR}.$((PUBLISHED_MINOR + 1)).0"
+          MAJOR_VERSION="$((PUBLISHED_MAJOR + 1)).0.0"
+
+          case "$CURRENT" in
+            "$PATCH_VERSION") BUMP="patch" ;;
+            "$MINOR_VERSION") BUMP="minor" ;;
+            "$MAJOR_VERSION") BUMP="major" ;;
+            *)
+              echo "::error::Package version ${CURRENT} is not a valid next semver after published version ${TOKENS_PUBLISHED}. Use ${PATCH_VERSION}, ${MINOR_VERSION}, or ${MAJOR_VERSION}."
+              exit 1
+              ;;
           esac
 
-          EXPECTED="${MAJOR}.${MINOR}.${PATCH}"
-
-          if git rev-parse "${SYSTEM}-v${EXPECTED}" >/dev/null 2>&1; then
-            echo "::error::Tag ${SYSTEM}-v${EXPECTED} already exists"
+          if npm view "@ajustinjames/${SYSTEM}-tokens@${CURRENT}" version >/dev/null 2>&1; then
+            echo "::error::@ajustinjames/${SYSTEM}-tokens@${CURRENT} is already published. npm does not allow overwriting published versions; bump the package manifests before merging."
             exit 1
           fi
 
-          TMP="$(mktemp)"
-          jq --arg v "$EXPECTED" '.version = $v' "$TOKENS_PKG" > "$TMP" && mv "$TMP" "$TOKENS_PKG"
-          TMP="$(mktemp)"
-          jq --arg v "$EXPECTED" '.version = $v' "$COMPONENTS_PKG" > "$TMP" && mv "$TMP" "$COMPONENTS_PKG"
+          if npm view "@ajustinjames/${SYSTEM}-components@${CURRENT}" version >/dev/null 2>&1; then
+            echo "::error::@ajustinjames/${SYSTEM}-components@${CURRENT} is already published. npm does not allow overwriting published versions; bump the package manifests before merging."
+            exit 1
+          fi
 
-          echo "version=$EXPECTED" >> "$GITHUB_OUTPUT"
+          if git rev-parse "${SYSTEM}-v${CURRENT}" >/dev/null 2>&1; then
+            echo "::error::Tag ${SYSTEM}-v${CURRENT} already exists"
+            exit 1
+          fi
+
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
 
       - name: Build packages
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:
-          SYSTEM: ${{ steps.label.outputs.system }}
+          SYSTEM: ${{ steps.detect.outputs.system }}
         run: |
           pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
           pnpm --filter "@ajustinjames/${SYSTEM}-components" build
 
-      - name: Commit and tag release
-        if: steps.label.outputs.skip != 'true'
+      - name: Push release tag
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:
-          SYSTEM: ${{ steps.label.outputs.system }}
+          SYSTEM: ${{ steps.detect.outputs.system }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "packages/${SYSTEM}-tokens/package.json" "packages/${SYSTEM}-components/package.json"
-          git commit -m "chore: release ${SYSTEM}-v${VERSION}"
           git tag "${SYSTEM}-v${VERSION}"
-          git push origin main --follow-tags
+          git push origin "refs/tags/${SYSTEM}-v${VERSION}"
 
       - name: Publish to npm
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:
-          SYSTEM: ${{ steps.label.outputs.system }}
+          SYSTEM: ${{ steps.detect.outputs.system }}
         run: |
           cd "packages/${SYSTEM}-tokens"
           npm publish . --access public
@@ -182,9 +212,9 @@ jobs:
           npm publish . --access public
 
       - name: Create GitHub release
-        if: steps.label.outputs.skip != 'true'
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SYSTEM: ${{ steps.label.outputs.system }}
+          SYSTEM: ${{ steps.detect.outputs.system }}
           VERSION: ${{ steps.version.outputs.version }}
         run: gh release create "${SYSTEM}-v${VERSION}" --title "${SYSTEM} v${VERSION}" --generate-notes
