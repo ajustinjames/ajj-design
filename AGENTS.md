@@ -29,6 +29,9 @@ pnpm storybook
 
 # Build Storybook static site
 pnpm build-storybook
+
+# Verify package manifests are safe to publish
+pnpm verify:publish-metadata
 ```
 
 ## Release Workflow
@@ -63,7 +66,11 @@ bump package manifests.
 | `packages/hardline-tokens` | `@ajustinjames/hardline-tokens` | Single `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
 | `packages/hardline-components` | `@ajustinjames/hardline-components` | Lit Web Components consuming token CSS vars |
 
-`@ajustinjames/hardline-components` depends on `@ajustinjames/hardline-tokens` via `workspace:*`. Storybook runs at the repo root and pulls stories from `packages/*/stories/`.
+`@ajustinjames/hardline-components` depends on `@ajustinjames/hardline-tokens`
+via a public semver range matching the release version, such as `^0.0.3`. Do
+not publish `workspace:*` dependency ranges; downstream npm consumers cannot
+install them. Storybook runs at the repo root and pulls stories from
+`packages/*/stories/`.
 
 ### Token pipeline
 

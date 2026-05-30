@@ -27,7 +27,7 @@ importers:
   packages/hardline-components:
     dependencies:
       '@ajustinjames/hardline-tokens':
-        specifier: workspace:*
+        specifier: ^0.0.3
         version: link:../hardline-tokens
       lit:
         specifier: ^3.0.0

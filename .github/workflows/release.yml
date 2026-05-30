@@ -191,6 +191,15 @@ jobs:
           pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
           pnpm --filter "@ajustinjames/${SYSTEM}-components" build
 
+      - name: Verify publish metadata
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.detect.outputs.system }}
+        run: |
+          node scripts/verify-publish-metadata.mjs \
+            "packages/${SYSTEM}-tokens/package.json" \
+            "packages/${SYSTEM}-components/package.json"
+
       - name: Push release tag
         if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:

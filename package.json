@@ -10,6 +10,7 @@
     "tokens:build": "pnpm -r --filter './packages/*-tokens' build",
     "prestorybook": "pnpm tokens:build",
     "prebuild-storybook": "pnpm tokens:build",
+    "verify:publish-metadata": "node scripts/verify-publish-metadata.mjs packages/hardline-tokens/package.json packages/hardline-components/package.json",
     "test": "pnpm -r --filter './packages/*-components' test",
     "test:screenshots": "pnpm -r --filter './packages/*-components' test:screenshots",
     "storybook": "storybook dev -p 6006",
