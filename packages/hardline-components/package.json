@@ -1,6 +1,6 @@
 {
   "name": "@ajustinjames/hardline-components",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
     "test:watch": "web-test-runner --watch"
   },
   "dependencies": {
-    "@ajustinjames/hardline-tokens": "workspace:*",
+    "@ajustinjames/hardline-tokens": "workspace:^",
     "lit": "^3.0.0"
   },
   "devDependencies": {
