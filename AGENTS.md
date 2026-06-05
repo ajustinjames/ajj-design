@@ -66,10 +66,10 @@ bump package manifests.
 | `packages/hardline-tokens` | `@ajustinjames/hardline-tokens` | Single `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
 | `packages/hardline-components` | `@ajustinjames/hardline-components` | Lit Web Components consuming token CSS vars |
 
-`@ajustinjames/hardline-components` depends on `@ajustinjames/hardline-tokens`
-via a public semver range matching the release version, such as `^0.0.3`. Do
-not publish `workspace:*` dependency ranges; downstream npm consumers cannot
-install them. Storybook runs at the repo root and pulls stories from
+`@ajustinjames/hardline-components` uses `workspace:^` for its local dependency
+on `@ajustinjames/hardline-tokens`. Publish from pnpm-packed tarballs so the
+published package metadata contains a real semver range, not a raw `workspace:`
+range. Storybook runs at the repo root and pulls stories from
 `packages/*/stories/`.
 
 ### Token pipeline

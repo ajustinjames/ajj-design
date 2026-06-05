@@ -195,10 +195,24 @@ jobs:
         if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
         env:
           SYSTEM: ${{ steps.detect.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
+          mkdir -p .release-tarballs
+          pnpm --dir "packages/${SYSTEM}-tokens" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
+          pnpm --dir "packages/${SYSTEM}-components" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
+
           node scripts/verify-publish-metadata.mjs \
-            "packages/${SYSTEM}-tokens/package.json" \
-            "packages/${SYSTEM}-components/package.json"
+            ".release-tarballs/ajustinjames-${SYSTEM}-tokens-${VERSION}.tgz" \
+            ".release-tarballs/ajustinjames-${SYSTEM}-components-${VERSION}.tgz"
+
+      - name: Publish to npm
+        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
+        env:
+          SYSTEM: ${{ steps.detect.outputs.system }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          npm publish ".release-tarballs/ajustinjames-${SYSTEM}-tokens-${VERSION}.tgz" --access public
+          npm publish ".release-tarballs/ajustinjames-${SYSTEM}-components-${VERSION}.tgz" --access public
 
       - name: Push release tag
         if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
@@ -208,17 +222,6 @@ jobs:
         run: |
           git tag "${SYSTEM}-v${VERSION}"
           git push origin "refs/tags/${SYSTEM}-v${VERSION}"
-
-      - name: Publish to npm
-        if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
-        env:
-          SYSTEM: ${{ steps.detect.outputs.system }}
-        run: |
-          cd "packages/${SYSTEM}-tokens"
-          npm publish . --access public
-
-          cd "../${SYSTEM}-components"
-          npm publish . --access public
 
       - name: Create GitHub release
         if: steps.detect.outputs.skip != 'true' && steps.version.outputs.skip != 'true'
