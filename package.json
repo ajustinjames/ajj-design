@@ -11,6 +11,7 @@
     "prestorybook": "pnpm tokens:build",
     "prebuild-storybook": "pnpm tokens:build",
     "verify:publish-metadata": "node scripts/verify-publish-metadata.mjs packages/hardline-tokens packages/hardline-components",
+    "test:issues": "node scripts/test-hardline-issue-regressions.mjs",
     "test": "pnpm -r --filter './packages/*-components' test",
     "test:screenshots": "pnpm -r --filter './packages/*-components' test:screenshots",
     "storybook": "storybook dev -p 6006",
