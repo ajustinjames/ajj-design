@@ -1,4 +1,27 @@
 export * from './foundations/aria-association-controller.js';
+
+import './ds-card/ds-card.js';
+import './ds-label/ds-label.js';
+import './ds-btn/ds-btn.js';
+import './ds-input/ds-input.js';
+import './ds-helper-text/ds-helper-text.js';
+import './ds-error-message/ds-error-message.js';
+import './ds-tooltip/ds-tooltip.js';
+import './ds-badge/ds-badge.js';
+import './ds-tag/ds-tag.js';
+import './ds-link/ds-link.js';
+import './ds-divider/ds-divider.js';
+import './ds-checkbox/ds-checkbox.js';
+import './ds-radio/ds-radio.js';
+import './ds-toggle/ds-toggle.js';
+import './ds-select/ds-select.js';
+import './ds-code/ds-code.js';
+import './ds-alert/ds-alert.js';
+import './ds-spinner/ds-spinner.js';
+import './ds-progress/ds-progress.js';
+import './ds-breadcrumb/ds-breadcrumb.js';
+import './ds-avatar/ds-avatar.js';
+
 export * from './ds-card/ds-card.js';
 export * from './ds-label/ds-label.js';
 export * from './ds-btn/ds-btn.js';

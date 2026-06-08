@@ -32,6 +32,7 @@ export class DsBtn extends LitElement {
       --hl-btn-color:        var(--hl-alias-action-color-primary, #FFFFFF);
       --hl-btn-border-color: var(--hl-alias-action-bg-primary, #FF4F00);
       --hl-btn-border-style: solid;
+      --hl-btn-shadow:       var(--hl-alias-action-shadow-primary, var(--hl-alias-shadow-1, 2px 2px 0px #000000));
     }
     :host([variant='ghost']) {
       --hl-btn-bg:           transparent;
@@ -69,7 +70,7 @@ export class DsBtn extends LitElement {
 
     :host([disabled]) {
       pointer-events: none;
-      opacity: 0.4;
+      opacity: var(--hl-btn-disabled-opacity, var(--hl-alias-action-disabled-opacity, 0.72));
       cursor: not-allowed;
     }
     :host([disabled]) ::slotted(*) {
