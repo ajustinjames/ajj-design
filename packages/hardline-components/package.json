@@ -17,7 +17,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": ["**/*.css", "./dist/index.js"],
+  "sideEffects": ["**/*.css", "./dist/index.js", "./dist/ds-*/*.js"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "web-test-runner",
