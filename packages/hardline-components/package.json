@@ -1,6 +1,6 @@
 {
   "name": "@ajustinjames/hardline-components",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "type": "module",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": ["**/*.css", "./dist/index.js"],
+  "sideEffects": true,
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "web-test-runner",
