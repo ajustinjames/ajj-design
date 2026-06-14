@@ -39,15 +39,6 @@ pnpm verify:publish-metadata
 Releases are PR-driven. Do not make the GitHub Actions release workflow mutate
 package manifests or push commits back to `main`.
 
-For a package release:
-- Bump both package manifests in the PR:
-  - `packages/hardline-tokens/package.json`
-  - `packages/hardline-components/package.json`
-- Keep both package versions identical.
-- The manifest bump must be the next valid semver relative to the currently
-  published npm version. For example, if npm has `0.0.2`, both manifests can
-  move to `0.0.3`, `0.1.0`, or `1.0.0`.
-
 Release decisions are derived from working-tree state, not git diffs. The plan
 is computed by `scripts/release-plan.mjs`, which both workflows share:
 - `.github/workflows/release-check.yml` runs it read-only on every PR to `main`
