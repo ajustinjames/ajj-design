@@ -57,6 +57,14 @@ release. No package manifest version change means no publish.
 For docs, infrastructure, Storybook-only, or other non-package changes, do not
 bump package manifests.
 
+Before bumping versions:
+- Rebase/branch off the latest `origin/main` first. A branch cut from stale
+  main can target a version that's already published on a later main commit.
+- Check both `packages/hardline-tokens/package.json` and
+  `packages/hardline-components/package.json` on `origin/main` for their
+  current versions — bump *both* to the same next valid semver, even if your
+  change only touches one package.
+
 ## Architecture
 
 ### Package structure
