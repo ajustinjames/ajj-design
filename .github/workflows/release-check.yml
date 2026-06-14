@@ -1,0 +1,27 @@
+name: Release Check
+
+# Pre-merge guard: runs the same release-plan logic as Release, but read-only.
+# It fails the PR if the resulting tree would violate a release invariant
+# (e.g. tokens/components versions out of lockstep, or a non-sequential bump),
+# so a bad version state is caught before it merges instead of after.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: release-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Validate release plan
+        run: node scripts/release-plan.mjs --check
