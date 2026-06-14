@@ -48,22 +48,34 @@ For a package release:
   published npm version. For example, if npm has `0.0.2`, both manifests can
   move to `0.0.3`, `0.1.0`, or `1.0.0`.
 
-The release workflow infers whether to publish from the package manifest version
-changes. It validates that both packages have the same target version, verifies
-that neither package has already published that exact version, builds both
-packages, pushes the release tag, publishes to npm, and creates the GitHub
-release. No package manifest version change means no publish.
+Release decisions are derived from working-tree state, not git diffs. The plan
+is computed by `scripts/release-plan.mjs`, which both workflows share:
+- `.github/workflows/release-check.yml` runs it read-only on every PR to `main`
+  (`node scripts/release-plan.mjs --check`). It fails the PR if the resulting
+  tree would violate an invariant — versions out of lockstep, bad semver, or a
+  non-sequential bump — so a bad version state is blocked *before* it merges.
+- `.github/workflows/release.yml` runs it on `push` to `main` and publishes any
+  system whose tree version is the valid next semver above what's on npm. It
+  packs tarballs, verifies publish metadata, publishes via npm OIDC, pushes the
+  `<system>-v<version>` tag, and creates the GitHub release.
+
+Because the plan is tree-state based (not diff based), a version bump can land
+across multiple PRs and still publish correctly: only the final manifest state
+matters. A push with no version change above npm is a no-op.
+
+For a package release, bump both manifests to the same next valid semver above
+the published npm version:
+- `packages/hardline-tokens/package.json`
+- `packages/hardline-components/package.json`
+
+The versions must stay identical (lockstep); the pre-merge check enforces this.
+For example, if npm has `0.0.2`, both move to `0.0.3`, `0.1.0`, or `1.0.0`.
 
 For docs, infrastructure, Storybook-only, or other non-package changes, do not
 bump package manifests.
 
-Before bumping versions:
-- Rebase/branch off the latest `origin/main` first. A branch cut from stale
-  main can target a version that's already published on a later main commit.
-- Check both `packages/hardline-tokens/package.json` and
-  `packages/hardline-components/package.json` on `origin/main` for their
-  current versions — bump *both* to the same next valid semver, even if your
-  change only touches one package.
+Branch off the latest `origin/main` before bumping so you target the correct
+next version; the pre-merge check will reject a stale or non-sequential bump.
 
 ## Architecture
 
