@@ -1,13 +1,33 @@
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises';
+import { existsSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const packageInputs = process.argv.slice(2);
+const repoRoot = path.resolve(import.meta.dirname, '..');
+const packagesDir = path.join(repoRoot, 'packages');
+
+// Mirrors release-plan.mjs's discovery convention: scan packages/*/package.json
+// so any package directory (not just registered "systems") is covered. Unlike
+// release-plan.mjs, this does not require a <name>-tokens/<name>-components pair
+// — every package with a manifest gets its publish metadata verified.
+function discoverPackageDirs() {
+  return readdirSync(packagesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(packagesDir, entry.name))
+    .filter((dir) => existsSync(path.join(dir, 'package.json')))
+    .sort();
+}
+
+let packageInputs = process.argv.slice(2);
 
 if (packageInputs.length === 0) {
-  console.error('Usage: node scripts/verify-publish-metadata.mjs <package-dir|package.json|package.tgz>...');
-  process.exit(2);
+  packageInputs = discoverPackageDirs();
+
+  if (packageInputs.length === 0) {
+    console.error('No package manifests found under packages/*/package.json');
+    process.exit(2);
+  }
 }
 
 const dependencyFields = ['dependencies', 'peerDependencies', 'optionalDependencies'];
@@ -77,13 +97,21 @@ for (const packageInput of packageInputs) {
     }
   }
 
-  if (manifest.name?.startsWith('@ajustinjames/') && manifest.version) {
-    const expectedTokenRange = `^${manifest.version}`;
-    const tokenRange = manifest.dependencies?.['@ajustinjames/hardline-tokens'];
+  // A "<system>-components" package must depend on its paired "<system>-tokens"
+  // package with a real, publishable semver range (never workspace:). Derive the
+  // system from the package name so any design system (hardline, glassline, ...)
+  // is checked uniformly.
+  const componentsMatch = /^@ajustinjames\/([a-z][a-z0-9-]*)-components$/.exec(manifest.name ?? '');
 
-    if (manifest.name === '@ajustinjames/hardline-components' && tokenRange !== expectedTokenRange) {
+  if (componentsMatch && manifest.version) {
+    const system = componentsMatch[1];
+    const tokenName = `@ajustinjames/${system}-tokens`;
+    const expectedTokenRange = `^${manifest.version}`;
+    const tokenRange = manifest.dependencies?.[tokenName];
+
+    if (tokenRange !== expectedTokenRange) {
       console.error(
-        `${label} must depend on @ajustinjames/hardline-tokens ${expectedTokenRange}; found ${tokenRange ?? 'missing'}`,
+        `${label} must depend on ${tokenName} ${expectedTokenRange}; found ${tokenRange ?? 'missing'}`,
       );
       failed = true;
     }

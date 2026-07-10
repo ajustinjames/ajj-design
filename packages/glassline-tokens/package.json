@@ -1,0 +1,27 @@
+{
+  "name": "@ajustinjames/glassline-tokens",
+  "version": "0.1.0",
+  "description": "Design tokens for the Glassline liquid-glass design system, compiled to CSS custom properties (--gl-*) via Style Dictionary.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajustinjames/ajj-design.git",
+    "directory": "packages/glassline-tokens"
+  },
+  "exports": {
+    ".": "./dist/web/tokens.css",
+    "./css": "./dist/web/tokens.css",
+    "./css-dark": "./dist/web/tokens-dark.css",
+    "./theme": "./dist/web/tokens-theme.css"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node sd.config.js"
+  },
+  "devDependencies": {
+    "style-dictionary": "^4.0.0"
+  }
+}
