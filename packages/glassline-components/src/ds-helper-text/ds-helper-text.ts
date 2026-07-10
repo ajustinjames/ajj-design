@@ -7,8 +7,8 @@ export class DsHelperText extends LitElement {
   static styles = css`
     :host {
       display: inline-block;
-      font-family: var(--gl-helper-text-font, var(--gl-alias-font-technical, 'SF Mono', ui-monospace, 'JetBrains Mono', monospace));
-      font-size: var(--gl-helper-text-font-size, var(--gl-alias-font-size-label, 11px));
+      font-family: var(--gl-helper-text-font, var(--gl-alias-font-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif));
+      font-size: var(--gl-helper-text-font-size, var(--gl-alias-font-size-footnote, 13px));
       color: var(--gl-helper-text-color, var(--gl-alias-text-muted, rgba(60, 60, 67, 0.6)));
     }
   `;
