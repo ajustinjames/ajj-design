@@ -1,0 +1,28 @@
+import { html } from 'lit';
+import type { Meta, StoryObj } from '@storybook/web-components';
+import '../src/ds-alert/ds-alert.js';
+import { glassBackdrop } from './_glass-backdrop.js';
+
+const meta: Meta = {
+  title: 'Glassline/gl-alert',
+  tags: ['autodocs'],
+  decorators: [glassBackdrop],
+  render: ({ tone, header, body }) => html`
+    <gl-alert tone="${tone}" style="max-width:400px;">
+      <span slot="header">${header}</span>
+      <p>${body}</p>
+    </gl-alert>
+  `,
+  argTypes: {
+    tone: { control: { type: 'select' }, options: ['info', 'success', 'warning', 'error'] },
+    header: { control: 'text' },
+    body: { control: 'text' },
+  },
+  args: { tone: 'info', header: 'System notice', body: 'Configuration updated successfully.' },
+};
+export default meta;
+type Story = StoryObj;
+export const Info: Story = {};
+export const Success: Story = { args: { tone: 'success', header: 'Build complete' } };
+export const Warning: Story = { args: { tone: 'warning', header: 'Rate limit' } };
+export const Error: Story = { args: { tone: 'error', header: 'Build failed' } };

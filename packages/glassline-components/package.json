@@ -1,0 +1,39 @@
+{
+  "name": "@ajustinjames/glassline-components",
+  "version": "0.1.0",
+  "description": "Framework-agnostic Lit Web Components (gl-*) for the Glassline liquid-glass design system.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajustinjames/ajj-design.git",
+    "directory": "packages/glassline-components"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "web-test-runner",
+    "test:screenshots": "playwright test",
+    "test:watch": "web-test-runner --watch"
+  },
+  "dependencies": {
+    "@ajustinjames/glassline-tokens": "workspace:^",
+    "lit": "^3.0.0"
+  },
+  "devDependencies": {
+    "@open-wc/testing": "^4.0.0",
+    "@web/dev-server-esbuild": "^1.0.0",
+    "@web/test-runner": "^0.19.0",
+    "@web/test-runner-playwright": "^0.11.0",
+    "typescript": "^5.4.0"
+  }
+}

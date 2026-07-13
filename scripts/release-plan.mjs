@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 /**
@@ -64,16 +64,36 @@ function nextVersions(published) {
   };
 }
 
+function hasManifest(pkgDir) {
+  return existsSync(path.join(packagesDir, pkgDir, 'package.json'));
+}
+
 function discoverSystems() {
   const entries = readdirSync(packagesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
-  const systems = new Set();
+  const candidates = new Set();
   for (const name of entries) {
     const match = /^([a-z][a-z0-9-]*)-(tokens|components)$/.exec(name);
-    if (match) systems.add(match[1]);
+    if (match) candidates.add(match[1]);
   }
-  return [...systems].sort();
+  const systems = [];
+  for (const name of [...candidates].sort()) {
+    const hasTokens = hasManifest(`${name}-tokens`);
+    const hasComponents = hasManifest(`${name}-components`);
+    if (hasTokens && hasComponents) {
+      systems.push(name);
+    } else if (hasTokens) {
+      console.error(
+        `Warning: packages/${name}-tokens has no matching packages/${name}-components — skipping orphan`,
+      );
+    } else if (hasComponents) {
+      console.error(
+        `Warning: packages/${name}-components has no matching packages/${name}-tokens — skipping orphan`,
+      );
+    }
+  }
+  return systems;
 }
 
 function planForSystem(system) {

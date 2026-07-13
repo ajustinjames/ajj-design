@@ -27,6 +27,8 @@ case "$PREFIX" in
     ;;
 esac
 
+NAME_CAP="$(printf '%s' "${NAME:0:1}" | tr '[:lower:]' '[:upper:]')${NAME:1}"
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 TOKENS_SRC="${REPO_ROOT}/packages/hardline-tokens"
@@ -72,8 +74,10 @@ find "$TOKENS_DEST" "$COMPONENTS_DEST" -type f \( \
     perl -i -pe "
       s|\@ajustinjames/hardline|\@ajustinjames/${NAME}|g;
       s|--hl-|--${PREFIX}-|g;
+      s|prefix: 'hl'|prefix: '${PREFIX}'|g;
       s|hl-|${PREFIX}-|g;
       s|hardline|${NAME}|g;
+      s|Hardline|${NAME_CAP}|g;
     " "$FILE"
   done
 

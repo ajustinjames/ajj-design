@@ -1,5 +1,7 @@
 import '../packages/hardline-tokens/dist/web/tokens.css';
 import '../packages/hardline-tokens/dist/web/tokens-dark.css';
+import '../packages/glassline-tokens/dist/web/tokens.css';
+import '../packages/glassline-tokens/dist/web/tokens-dark.css';
 import type { Preview } from '@storybook/web-components';
 
 const preview: Preview = {
@@ -9,6 +11,7 @@ const preview: Preview = {
       values: [
         { name: 'paper', value: '#F0F0EC' },
         { name: 'white', value: '#FFFFFF' },
+        { name: 'glass', value: '#F5F5F7' },
       ],
     },
   },

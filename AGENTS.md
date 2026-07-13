@@ -4,7 +4,12 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## Overview
 
-`ajj-design` is an industrial-material design system platform. The current system is `hardline`: framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary. It targets web CSS custom properties from a single source of truth.
+`ajj-design` is a multi-system design platform hosting two design systems: `hardline`, an industrial-material system, and `glassline`, a liquid-glass system. Both are framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary, targeting web CSS custom properties from a single source of truth.
+
+- `hardline`: industrial-material aesthetic (hard-cast shadows, 0px corner radii, no gradients — see Design constraints below). Custom elements prefixed `hl-*`. Packages at `packages/hardline-tokens` and `packages/hardline-components`.
+- `glassline`: liquid-glass aesthetic (translucent blurred surfaces, rounded geometry, specular highlights — Apple Liquid Glass style). Custom elements prefixed `gl-*`. Packages at `packages/glassline-tokens` and `packages/glassline-components`. Follows the same `ds-*` filename conventions described elsewhere in this doc.
+
+New design systems are scaffolded from `hardline` via `scripts/create-system.sh <name> <prefix>` (see Package structure below).
 
 ## Commands
 
@@ -76,12 +81,20 @@ next version; the pre-merge check will reject a stale or non-sequential bump.
 |---|---|---|
 | `packages/hardline-tokens` | `@ajustinjames/hardline-tokens` | Single `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
 | `packages/hardline-components` | `@ajustinjames/hardline-components` | Lit Web Components consuming token CSS vars |
+| `packages/glassline-tokens` | `@ajustinjames/glassline-tokens` | Single `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
+| `packages/glassline-components` | `@ajustinjames/glassline-components` | Lit Web Components consuming token CSS vars |
 
 `@ajustinjames/hardline-components` uses `workspace:^` for its local dependency
-on `@ajustinjames/hardline-tokens`. Publish from pnpm-packed tarballs so the
-published package metadata contains a real semver range, not a raw `workspace:`
-range. Storybook runs at the repo root and pulls stories from
-`packages/*/stories/`.
+on `@ajustinjames/hardline-tokens` (and likewise `glassline-components` on
+`glassline-tokens`). Publish from pnpm-packed tarballs so the published package
+metadata contains a real semver range, not a raw `workspace:` range. Storybook
+runs at the repo root and pulls stories from `packages/*/stories/`.
+
+New systems are scaffolded from the hardline template with
+`./scripts/create-system.sh <name> <prefix>`, which copies
+`packages/hardline-tokens` and `packages/hardline-components` into
+`packages/<name>-tokens` and `packages/<name>-components` and rewrites package
+names, custom-element prefixes, and doc references.
 
 ### Token pipeline
 
@@ -106,6 +119,9 @@ range. Storybook runs at the repo root and pulls stories from
 `src/foundations/aria-association-controller.ts` is a `ReactiveController` that wires ARIA attributes (`aria-labelledby`, `aria-describedby`, etc.) across shadow DOM boundaries. It mints a UUID-based id on the host if none is set and warns in dev mode. Components needing cross-shadow ARIA association should instantiate this controller.
 
 ### Design constraints (from manifesto)
+
+These constraints are `hardline`-specific and do not apply to `glassline`, which
+intentionally uses rounded geometry, blur, and specular highlights.
 
 - Corner radii: **0px** only. No pills, no rounded corners.
 - Shadows: hard-cast offset shadows only (`2px 2px 0px #000`). No blur.
