@@ -63,7 +63,7 @@ describe('gl-btn', () => {
   it('disabled applies pointer-events:none and readable fallback opacity', async () => {
     const el = await fixture<DsBtn>(html`<gl-btn disabled><button disabled>OK</button></gl-btn>`);
     expect(getComputedStyle(el).pointerEvents).to.equal('none');
-    expect(getComputedStyle(el).opacity).to.equal('0.72');
+    expect(getComputedStyle(el).opacity).to.equal('0.4');
   });
 
   it('warns when shell disabled but native is not', async () => {

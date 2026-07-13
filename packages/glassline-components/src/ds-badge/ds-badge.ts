@@ -27,24 +27,24 @@ export class DsBadge extends LitElement {
       --gl-badge-color: var(--gl-alias-text-main, #1D1D1F);
     }
     :host([tone='accent']) {
-      --gl-badge-color: #0A84FF;
-      --gl-badge-bg: color-mix(in srgb, #0A84FF 16%, rgba(255, 255, 255, 0.72));
-      --gl-badge-border: color-mix(in srgb, #0A84FF 40%, transparent);
+      --gl-badge-color: var(--gl-alias-status-info, #0A84FF);
+      --gl-badge-bg: color-mix(in srgb, var(--gl-alias-status-info, #0A84FF) 16%, var(--gl-alias-surface-bg-strong, rgba(255, 255, 255, 0.72)));
+      --gl-badge-border: color-mix(in srgb, var(--gl-alias-status-info, #0A84FF) 40%, transparent);
     }
     :host([tone='success']) {
-      --gl-badge-color: #248A3D;
-      --gl-badge-bg: color-mix(in srgb, #30D158 18%, rgba(255, 255, 255, 0.72));
-      --gl-badge-border: color-mix(in srgb, #30D158 44%, transparent);
+      --gl-badge-color: var(--gl-alias-status-success, #248A3D);
+      --gl-badge-bg: color-mix(in srgb, var(--gl-alias-status-success, #30D158) 18%, var(--gl-alias-surface-bg-strong, rgba(255, 255, 255, 0.72)));
+      --gl-badge-border: color-mix(in srgb, var(--gl-alias-status-success, #30D158) 44%, transparent);
     }
     :host([tone='error']) {
-      --gl-badge-color: #D70015;
-      --gl-badge-bg: color-mix(in srgb, #FF453A 16%, rgba(255, 255, 255, 0.72));
-      --gl-badge-border: color-mix(in srgb, #FF453A 40%, transparent);
+      --gl-badge-color: var(--gl-alias-status-error, #D70015);
+      --gl-badge-bg: color-mix(in srgb, var(--gl-alias-status-error, #FF453A) 16%, var(--gl-alias-surface-bg-strong, rgba(255, 255, 255, 0.72)));
+      --gl-badge-border: color-mix(in srgb, var(--gl-alias-status-error, #FF453A) 40%, transparent);
     }
     :host([tone='warning']) {
-      --gl-badge-color: #9A6700;
-      --gl-badge-bg: color-mix(in srgb, #FFD60A 26%, rgba(255, 255, 255, 0.72));
-      --gl-badge-border: color-mix(in srgb, #FFD60A 52%, transparent);
+      --gl-badge-color: var(--gl-alias-status-warning, #9A6700);
+      --gl-badge-bg: color-mix(in srgb, var(--gl-alias-status-warning, #FFD60A) 26%, var(--gl-alias-surface-bg-strong, rgba(255, 255, 255, 0.72)));
+      --gl-badge-border: color-mix(in srgb, var(--gl-alias-status-warning, #FFD60A) 52%, transparent);
     }
   `;
 

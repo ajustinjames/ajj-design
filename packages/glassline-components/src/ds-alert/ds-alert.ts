@@ -21,10 +21,10 @@ export class DsAlert extends LitElement {
         var(--gl-alias-shadow-inset, inset 0 1px 0 rgba(255, 255, 255, 0.6));
     }
 
-    :host([tone='info'])    { --gl-alert-tone-color: #0A84FF; }
-    :host([tone='success']) { --gl-alert-tone-color: #248A3D; }
-    :host([tone='warning']) { --gl-alert-tone-color: #9A6700; }
-    :host([tone='error'])   { --gl-alert-tone-color: #D70015; }
+    :host([tone='info'])    { --gl-alert-tone-color: var(--gl-alias-status-info, #0A84FF); }
+    :host([tone='success']) { --gl-alert-tone-color: var(--gl-alias-status-success, #248A3D); }
+    :host([tone='warning']) { --gl-alert-tone-color: var(--gl-alias-status-warning, #9A6700); }
+    :host([tone='error'])   { --gl-alert-tone-color: var(--gl-alias-status-error, #D70015); }
 
     .header {
       font-family: var(--gl-alias-font-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif);
