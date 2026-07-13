@@ -29,7 +29,7 @@ export class DsSelect extends LitElement {
     }
     :host([disabled]) {
       pointer-events: none;
-      opacity: 0.4;
+      opacity: var(--hl-select-disabled-opacity, var(--hl-alias-action-disabled-opacity, 0.4));
       cursor: not-allowed;
     }
     ::slotted(select) {
@@ -47,7 +47,6 @@ export class DsSelect extends LitElement {
   `;
 
   @property({ type: String, reflect: true }) state: 'default' | 'error' | 'success' = 'default';
-  @property({ type: String, reflect: true }) placeholder?: string;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   render() {

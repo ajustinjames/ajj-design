@@ -13,7 +13,7 @@ export class DsRadio extends LitElement {
     }
     :host([disabled]) {
       pointer-events: none;
-      opacity: 0.4;
+      opacity: var(--hl-radio-disabled-opacity, var(--hl-alias-action-disabled-opacity, 0.4));
       cursor: not-allowed;
     }
     .indicator {
@@ -30,6 +30,10 @@ export class DsRadio extends LitElement {
       background: var(--hl-alias-action-bg-primary, #FF4F00);
       border-color: var(--hl-alias-action-bg-primary, #FF4F00);
       box-shadow: var(--hl-alias-shadow-1, 2px 2px 0px #000000);
+    }
+    :host(:focus-within) .indicator {
+      outline: 2px solid var(--hl-global-color-accent, #FF4F00);
+      outline-offset: 2px;
     }
     ::slotted(input[type='radio']) {
       opacity: 0;

@@ -38,4 +38,17 @@ describe('hl-toggle', () => {
     const native = el.querySelector<HTMLInputElement>('input')!;
     expect(native.getAttribute('role')).to.equal('switch');
   });
+
+  it('shows a visible focus outline on the track when the slotted input is focused', async () => {
+    const el = await fixture<DsToggle>(html`
+      <hl-toggle><input type="checkbox" /></hl-toggle>
+    `);
+    const native = el.querySelector<HTMLInputElement>('input')!;
+    native.focus();
+    await el.updateComplete;
+    const track = el.shadowRoot!.querySelector<HTMLElement>('.track')!;
+    const computed = getComputedStyle(track);
+    expect(computed.outlineStyle).to.equal('solid');
+    expect(computed.outlineWidth).to.not.equal('0px');
+  });
 });

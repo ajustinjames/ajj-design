@@ -27,4 +27,17 @@ describe('hl-radio', () => {
     await el.updateComplete;
     expect(el.checked).to.be.true;
   });
+
+  it('shows a visible focus outline on the indicator when the slotted input is focused', async () => {
+    const el = await fixture<DsRadio>(html`
+      <hl-radio><input type="radio" /><label>Option A</label></hl-radio>
+    `);
+    const native = el.querySelector<HTMLInputElement>('input')!;
+    native.focus();
+    await el.updateComplete;
+    const indicator = el.shadowRoot!.querySelector<HTMLElement>('.indicator')!;
+    const computed = getComputedStyle(indicator);
+    expect(computed.outlineStyle).to.equal('solid');
+    expect(computed.outlineWidth).to.not.equal('0px');
+  });
 });

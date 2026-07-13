@@ -13,7 +13,7 @@ export class DsCheckbox extends LitElement {
     }
     :host([disabled]) {
       pointer-events: none;
-      opacity: 0.4;
+      opacity: var(--hl-checkbox-disabled-opacity, var(--hl-alias-action-disabled-opacity, 0.4));
       cursor: not-allowed;
     }
     .indicator {
@@ -51,6 +51,10 @@ export class DsCheckbox extends LitElement {
       width: 8px;
       height: 2px;
       background: #FFFFFF;
+    }
+    :host(:focus-within) .indicator {
+      outline: 2px solid var(--hl-global-color-accent, #FF4F00);
+      outline-offset: 2px;
     }
     ::slotted(input[type='checkbox']) {
       opacity: 0;

@@ -32,8 +32,8 @@ export class DsBadge extends LitElement {
       border-color: var(--hl-alias-status-error, #CC0000);
     }
     :host([tone='warning']) {
-      color: #B85C00;
-      border-color: #B85C00;
+      color: var(--hl-alias-status-warning, #B85C00);
+      border-color: var(--hl-alias-status-warning, #B85C00);
     }
   `;
 

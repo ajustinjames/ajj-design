@@ -45,7 +45,7 @@ export class DsInput extends LitElement {
 
     :host([disabled]) {
       pointer-events: none;
-      opacity: 0.4;
+      opacity: var(--hl-input-disabled-opacity, var(--hl-alias-action-disabled-opacity, 0.4));
       cursor: not-allowed;
     }
 
@@ -77,11 +77,11 @@ export class DsInput extends LitElement {
     }
 
     :host([data-type='clinical']) ::slotted(input) {
-      font-family: var(--hl-font-mono, 'JetBrains Mono', monospace);
+      font-family: var(--hl-alias-font-technical, 'JetBrains Mono', monospace);
     }
 
     ::slotted([slot='unit']) {
-      font-family: var(--hl-font-mono, 'JetBrains Mono', monospace);
+      font-family: var(--hl-alias-font-technical, 'JetBrains Mono', monospace);
       font-size: 12px;
       padding: 0 var(--hl-alias-space-2, 8px);
       border-left: 1px solid var(--hl-input-border, #1A1A1A);

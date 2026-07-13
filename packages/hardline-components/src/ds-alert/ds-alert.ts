@@ -1,11 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
-const TONE_COLORS: Record<string, string> = {
-  info: '#1A1A1A',
-  success: '#1A6B1A',
-  warning: '#B85C00',
-  error: '#CC0000',
+const TONE_COLOR_VARS: Record<string, string> = {
+  info: 'var(--hl-alias-status-info, #1A1A1A)',
+  success: 'var(--hl-alias-status-success, #1A6B1A)',
+  warning: 'var(--hl-alias-status-warning, #B85C00)',
+  error: 'var(--hl-alias-status-error, #CC0000)',
 };
 
 @customElement('hl-alert')
@@ -20,7 +20,7 @@ export class DsAlert extends LitElement {
       box-shadow: var(--hl-alias-shadow-1, 2px 2px 0px #000000);
     }
     .header {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--hl-alias-font-technical, 'JetBrains Mono', monospace);
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -52,7 +52,7 @@ export class DsAlert extends LitElement {
   }
 
   render() {
-    const color = TONE_COLORS[this.tone] ?? '#1A1A1A';
+    const color = TONE_COLOR_VARS[this.tone] ?? TONE_COLOR_VARS.info;
     return html`
       <div class="header" style="--hl-alert-tone-color:${color}">
         <slot name="header"></slot>

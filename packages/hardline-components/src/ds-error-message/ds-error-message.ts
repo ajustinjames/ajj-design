@@ -9,7 +9,7 @@ export class DsErrorMessage extends LitElement {
       display: inline-block;
       font-family: var(--hl-error-message-font, var(--hl-alias-font-technical, 'JetBrains Mono', monospace));
       font-size: var(--hl-error-message-font-size, var(--hl-alias-font-size-label, 11px));
-      color: var(--hl-error-message-color, #CC0000);
+      color: var(--hl-error-message-color, var(--hl-alias-status-error, #CC0000));
     }
     :host::before {
       content: '■ ';
