@@ -60,10 +60,10 @@ describe('hl-btn', () => {
     expect(el.hasAttribute('disabled')).to.be.true;
   });
 
-  it('disabled applies pointer-events:none and readable fallback opacity', async () => {
+  it('disabled applies pointer-events:none and a fallback opacity matching the light disabled-opacity token', async () => {
     const el = await fixture<DsBtn>(html`<hl-btn disabled><button disabled>OK</button></hl-btn>`);
     expect(getComputedStyle(el).pointerEvents).to.equal('none');
-    expect(getComputedStyle(el).opacity).to.equal('0.72');
+    expect(getComputedStyle(el).opacity).to.equal('0.4');
   });
 
   it('warns when shell disabled but native is not', async () => {

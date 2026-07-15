@@ -65,7 +65,7 @@ export class DsBtn extends LitElement {
 
     :host([disabled]) {
       pointer-events: none;
-      opacity: var(--gl-btn-disabled-opacity, var(--gl-alias-action-disabled-opacity, 0.72));
+      opacity: var(--gl-btn-disabled-opacity, var(--gl-alias-action-disabled-opacity, 0.4));
       cursor: not-allowed;
     }
     :host([disabled]) ::slotted(*) {

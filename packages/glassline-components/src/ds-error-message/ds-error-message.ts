@@ -9,7 +9,7 @@ export class DsErrorMessage extends LitElement {
       display: inline-block;
       font-family: var(--gl-error-message-font, var(--gl-alias-font-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif));
       font-size: var(--gl-error-message-font-size, var(--gl-alias-font-size-footnote, 13px));
-      color: var(--gl-error-message-color, #D70015);
+      color: var(--gl-error-message-color, var(--gl-alias-status-error, #D70015));
     }
     :host::before {
       content: '■ ';

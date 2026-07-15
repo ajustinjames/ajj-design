@@ -12,7 +12,11 @@ export class DsSpinner extends LitElement {
     .square {
       background: #FF4F00;
       border-radius: 0;
-      animation: hl-spin 800ms steps(8, end) infinite;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .square {
+        animation: hl-spin 800ms steps(8, end) infinite;
+      }
     }
     :host([size='sm']) .square { width: 12px; height: 12px; }
     :host([size='md']) .square { width: 20px; height: 20px; }

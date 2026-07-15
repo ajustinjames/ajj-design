@@ -58,7 +58,6 @@ export class DsSelect extends LitElement {
   `;
 
   @property({ type: String, reflect: true }) state: 'default' | 'error' | 'success' = 'default';
-  @property({ type: String, reflect: true }) placeholder?: string;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   render() {

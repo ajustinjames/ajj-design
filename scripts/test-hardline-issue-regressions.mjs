@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const componentIndex = await readFile('packages/hardline-components/src/index.ts', 'utf8');
-const buttonSource = await readFile('packages/hardline-components/src/ds-btn/ds-btn.ts', 'utf8');
-const tokens = JSON.parse(await readFile('packages/hardline-tokens/tokens.json', 'utf8'));
+// This script encodes hardline-specific regression assertions (button token
+// wiring, dark-mode contrast values). The system to check defaults to
+// `hardline` but can be overridden so other systems created via
+// `scripts/create-system.sh` can reuse the same harness once they define
+// equivalent fixtures, e.g. `node scripts/test-hardline-issue-regressions.mjs glassline`.
+const system = process.argv[2] ?? 'hardline';
+const componentsDir = `packages/${system}-components`;
+const tokensDir = `packages/${system}-tokens`;
+
+const componentIndex = await readFile(`${componentsDir}/src/index.ts`, 'utf8');
+const buttonSource = await readFile(`${componentsDir}/src/ds-btn/ds-btn.ts`, 'utf8');
+const tokens = JSON.parse(await readFile(`${tokensDir}/tokens.json`, 'utf8'));
 
 const componentExports = [...componentIndex.matchAll(/export \* from '(\.\/ds-[^']+\.js)';/g)].map(match => match[1]);
 const sideEffectImports = [...componentIndex.matchAll(/^import '(\.\/ds-[^']+\.js)';$/gm)].map(match => match[1]);
@@ -34,6 +43,8 @@ assert.match(
 
 assert.match(
   buttonSource,
-  /:host\(\[disabled\]\)\s*\{[\s\S]*opacity:\s*var\(--hl-btn-disabled-opacity,\s*var\(--hl-alias-action-disabled-opacity,\s*0\.72\)\);/,
-  'disabled buttons must use the disabled opacity token with a readable fallback',
+  /:host\(\[disabled\]\)\s*\{[\s\S]*opacity:\s*var\(--hl-btn-disabled-opacity,\s*var\(--hl-alias-action-disabled-opacity,\s*0\.4\)\);/,
+  'disabled buttons must use the disabled opacity token with a fallback matching the light alias.action.disabled-opacity value',
 );
+
+console.log(`Verified issue regressions for ${system}.`);
