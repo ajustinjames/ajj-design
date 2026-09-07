@@ -1,0 +1,33 @@
+version: 2
+
+updates:
+  # Keep all workspace package manifests and the root package.json covered by
+  # one npm update configuration. Group repeated dependencies across packages
+  # so a shared dependency is updated in one pull request.
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/packages/*"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+        group-by: dependency-name
+
+  # Keep workflow actions current in a separate, grouped monthly pull request.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
