@@ -17,7 +17,6 @@ updates:
       npm-dependencies:
         patterns:
           - "*"
-        group-by: dependency-name
 
   # Keep workflow actions current in a separate, grouped monthly pull request.
   - package-ecosystem: "github-actions"
