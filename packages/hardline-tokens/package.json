@@ -21,6 +21,6 @@
     "build": "node sd.config.js"
   },
   "devDependencies": {
-    "style-dictionary": "^5.5.2"
+    "style-dictionary": "^5.5.3"
   }
 }
