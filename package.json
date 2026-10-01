@@ -18,10 +18,10 @@
     "build-storybook": "storybook build"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@storybook/web-components": "^10.5.10",
-    "@storybook/web-components-vite": "^10.5.10",
-    "storybook": "^10.5.10",
+    "@playwright/test": "^1.63.0",
+    "@storybook/web-components": "^10.6.0",
+    "@storybook/web-components-vite": "^10.6.0",
+    "storybook": "^10.6.0",
     "typescript": "^7.0.2"
   }
 }
