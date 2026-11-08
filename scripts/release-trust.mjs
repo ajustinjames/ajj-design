@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
-import { RELEASE_WORKFLOW_FILE, discoverSystems, packageNames, readManifest } from './release-lib.mjs';
+import { RELEASE_WORKFLOW_FILE, discoverSystems, githubRepo, packageNames } from './release-lib.mjs';
 
 /**
  * One-time, run-locally step after a system's first (launch) release:
@@ -23,12 +23,7 @@ if (!system || !systems.includes(system)) {
   process.exit(1);
 }
 
-const repoUrl = readManifest(system, 'components').repository?.url ?? '';
-const repo = /github\.com[/:]([^/]+\/[^/.]+)/.exec(repoUrl)?.[1];
-if (!repo) {
-  console.error(`Could not derive the GitHub repo from repository.url '${repoUrl}'`);
-  process.exit(1);
-}
+const repo = githubRepo(system);
 
 const names = Object.values(packageNames(system));
 let failed = false;

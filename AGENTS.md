@@ -42,6 +42,7 @@ pnpm verify:publish-metadata
 pnpm test:release                                # unit tests for the release logic
 pnpm release:plan --labels '["minor"]'           # preview a label against HEAD^1..HEAD
 pnpm release:dry-run                             # build + pack + verify every system
+pnpm release:notes --system hardline --version 0.2.0  # preview GitHub release notes
 pnpm release:trust <system>                      # one-time npm trusted-publisher setup
 ```
 
@@ -87,6 +88,61 @@ The scripts:
   system at an exact version. Idempotent: packages and releases that already
   exist are skipped, so a failed run can be re-run. CI runs
   `pnpm release:dry-run` (pack and verify every system) on every PR.
+
+### Release notes (the changelog)
+
+GitHub Releases are the changelog. There is no `CHANGELOG.md`, and none should be
+added. Each `<system>-v<version>` release lists only the PRs that changed that
+system's published files since its previous release, grouped by the PR's
+release label:
+
+| PR label | Section |
+|---|---|
+| `major` | Breaking changes |
+| `minor`, `launch` | Features |
+| `patch` | Fixes |
+| none (e.g. dependency bumps) | Other changes |
+
+PR titles become changelog lines, so write them for package consumers
+("Add `hl-tabs`", "Rename `--hl-btn-bg` to `--hl-btn-surface`"). Package READMEs
+link to the releases page. Preview the notes with `pnpm release:notes`.
+
+### PR previews
+
+`.github/workflows/preview.yml` publishes every package on every PR to
+[pkg.pr.new](https://pkg.pr.new) and comments install commands on the PR, for
+example `npm i https://pkg.pr.new/@ajustinjames/hardline-components@46`. Previews
+never touch npm, use version `0.0.0-preview-<sha>`, and need no labels or
+secrets. This requires the pkg.pr.new GitHub App to be installed on the repo.
+Use previews to try a change in a real app before merging it with a release
+label.
+
+### Versioning policy
+
+The packages follow strict semver, including while on `0.x`: a breaking change
+always gets the `major` label, so the first one releases `1.0.0`.
+
+Public API, where any incompatible change is **breaking** (`major`):
+- custom element tag names (`hl-*`, `gl-*`)
+- attributes and properties, their allowed values, and their defaults
+- slot names, `::part` names, and dispatched events
+- CSS custom properties (`--hl-*`, `--gl-*`) at every tier: global, alias and
+  component. Removing or renaming one, or changing what it means (for example
+  repurposing a color role), is breaking.
+- package `exports` paths (`/css`, `/css-dark`, `/theme`) and exported JS (for
+  example `AriaAssociationController`)
+- supported runtime: raising the `lit` major version or dropping browser support
+
+**Features** (`minor`): new components, attributes, slots, parts, events,
+tokens or exports; intentional visual changes to existing tokens that keep
+their meaning; deprecations. A deprecated API keeps working, warns in dev mode,
+and is removed only in a later `major`.
+
+**Fixes** (`patch`): bug, accessibility and visual fixes that keep the design
+intent; corrections to wrong token values; package README changes.
+
+Not public API, so no version impact: source file paths (`ds-*`), internal
+`Ds*` class names, tests, stories and Storybook.
 
 ### Launching a new system
 

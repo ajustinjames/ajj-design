@@ -308,3 +308,69 @@ export function planRelease({ states, labels = [], changedFiles = [], dispatch }
 
   return plan;
 }
+
+/** `owner/repo` from $GITHUB_REPOSITORY, or from a package's repository.url. */
+export function githubRepo(system) {
+  if (process.env.GITHUB_REPOSITORY) return process.env.GITHUB_REPOSITORY;
+  const url = readManifest(system, 'components').repository?.url ?? '';
+  const repo = /github\.com[/:]([^/]+\/[^/.]+)/.exec(url)?.[1];
+  if (!repo) throw new Error(`Could not derive the GitHub repo from repository.url '${url}'`);
+  return repo;
+}
+
+// Release-note sections, keyed by the release label the PR carried.
+const NOTE_SECTIONS = [
+  ['major', 'Breaking changes'],
+  ['minor', 'Features'],
+  ['launch', 'Features'],
+  ['patch', 'Fixes'],
+];
+
+/**
+ * Markdown body for a system's GitHub release. GitHub Releases are the
+ * changelog for this repo (there is no CHANGELOG.md).
+ *
+ * @param {object} input
+ * @param {string} input.system
+ * @param {string} input.version
+ * @param {string} input.repo            owner/repo
+ * @param {string|null} input.previousTag  null for a system's first release
+ * @param {Array<{number: number|null, title: string, labels: string[]}>} input.changes
+ *   PRs (or commits without a PR, number = null) that changed this system's
+ *   published files since previousTag
+ */
+export function formatReleaseNotes({ system, version, repo, previousTag, changes }) {
+  const lines = [];
+  const item = (change) => `- ${change.title}${change.number ? ` (#${change.number})` : ''}`;
+
+  if (!previousTag) {
+    lines.push(`First release of **${system}**.`, '');
+  } else if (changes.length === 0) {
+    lines.push('No changes to published files since the previous release.', '');
+  } else {
+    const sections = new Map();
+    for (const change of changes) {
+      const heading = NOTE_SECTIONS.find(([label]) => change.labels.includes(label))?.[1] ?? 'Other changes';
+      if (!sections.has(heading)) sections.set(heading, []);
+      sections.get(heading).push(change);
+    }
+    for (const heading of ['Breaking changes', 'Features', 'Fixes', 'Other changes']) {
+      if (!sections.has(heading)) continue;
+      lines.push(`## ${heading}`, '', ...sections.get(heading).map(item), '');
+    }
+  }
+
+  const names = packageNames(system);
+  lines.push(
+    '## Packages',
+    '',
+    ...['tokens', 'components'].map(
+      (kind) => `- [\`${names[kind]}@${version}\`](https://www.npmjs.com/package/${names[kind]}/v/${version})`,
+    ),
+    '',
+  );
+  if (previousTag) {
+    lines.push(`**Full diff:** https://github.com/${repo}/compare/${previousTag}...${system}-v${version}`, '');
+  }
+  return lines.join('\n');
+}

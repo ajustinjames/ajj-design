@@ -19,7 +19,8 @@
     "release:plan": "node scripts/release-plan.mjs",
     "release:dry-run": "node scripts/release-publish.mjs --all --dry-run",
     "release:trust": "node scripts/release-trust.mjs",
-    "test:release": "node --test scripts/release-lib.test.mjs"
+    "test:release": "node --test scripts/release-lib.test.mjs",
+    "release:notes": "node scripts/release-publish.mjs --notes"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

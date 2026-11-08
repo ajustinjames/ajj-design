@@ -4,6 +4,7 @@ import {
   bumpVersion,
   changedSystems,
   compareSemver,
+  formatReleaseNotes,
   parseReleaseLabels,
   planRelease,
   shippedSystemOf,
@@ -199,5 +200,42 @@ describe('planRelease (manual dispatch)', () => {
 
   it('treats resume with nothing pending as a no-op', () => {
     assert.equal(dispatch('hardline', 'resume').hardline.action, 'skip');
+  });
+});
+
+describe('formatReleaseNotes', () => {
+  const base = { system: 'hardline', version: '0.2.0', repo: 'o/r', previousTag: 'hardline-v0.1.0' };
+
+  it('groups PRs by their release label, breaking first', () => {
+    const notes = formatReleaseNotes({
+      ...base,
+      changes: [
+        { number: 3, title: 'Fix focus ring', labels: ['patch'] },
+        { number: 1, title: 'Rename --hl-btn-bg', labels: ['major'] },
+        { number: 2, title: 'Add hl-tabs', labels: ['minor', 'enhancement'] },
+        { number: 4, title: 'Bump lit', labels: ['dependencies'] },
+        { number: null, title: 'direct commit', labels: [] },
+      ],
+    });
+    const order = ['## Breaking changes', '- Rename --hl-btn-bg (#1)', '## Features', '- Add hl-tabs (#2)', '## Fixes', '- Fix focus ring (#3)', '## Other changes', '- Bump lit (#4)', '- direct commit'];
+    let last = -1;
+    for (const line of order) {
+      const index = notes.indexOf(line);
+      assert.ok(index > last, `expected "${line}" after the previous line`);
+      last = index;
+    }
+  });
+
+  it('links both npm packages and the diff', () => {
+    const notes = formatReleaseNotes({ ...base, changes: [] });
+    assert.match(notes, /npmjs\.com\/package\/@ajustinjames\/hardline-tokens\/v\/0\.2\.0/);
+    assert.match(notes, /npmjs\.com\/package\/@ajustinjames\/hardline-components\/v\/0\.2\.0/);
+    assert.match(notes, /compare\/hardline-v0\.1\.0\.\.\.hardline-v0\.2\.0/);
+  });
+
+  it('describes a first release without a diff link', () => {
+    const notes = formatReleaseNotes({ ...base, version: '0.1.0', previousTag: null, changes: [] });
+    assert.match(notes, /First release of \*\*hardline\*\*/);
+    assert.doesNotMatch(notes, /compare/);
   });
 });

@@ -6,12 +6,15 @@ import { parseArgs } from 'node:util';
 import {
   compareSemver,
   discoverSystems,
+  formatReleaseNotes,
+  githubRepo,
   isSemver,
   isVersionPublished,
   latestPublishedVersion,
   manifestPath,
   packageNames,
   repoRoot,
+  shippedSystemOf,
 } from './release-lib.mjs';
 
 /**
@@ -34,6 +37,8 @@ import {
  *                OIDC trusted publishing cannot create new packages.
  *   --dry-run    Build, pack and verify only. No npm publish, tag or release.
  *   --no-github  Publish to npm but skip the tag + GitHub release.
+ *   --notes      Only print the GitHub release notes this release would get
+ *                (PRs since the system's previous tag), then exit.
  *
  * Auth comes from the environment: OIDC in the Release workflow's publish job,
  * NODE_AUTH_TOKEN in its launch job, or your `npm login` session locally.
@@ -47,6 +52,7 @@ const { values: args } = parseArgs({
     launch: { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
     'no-github': { type: 'boolean', default: false },
+    notes: { type: 'boolean', default: false },
   },
 });
 
@@ -150,17 +156,62 @@ function releaseExists(tag) {
   }
 }
 
-function createGithubRelease(system, version) {
+/**
+ * PRs (or bare commits) since `prevTag` that changed this system's published
+ * files, oldest first, with their labels so notes can be grouped.
+ */
+function collectChanges(system, prevTag, repo) {
+  const shas = capture('git', [
+    'log', '--reverse', '--format=%H', `${prevTag}..HEAD`, '--',
+    `packages/${system}-tokens`, `packages/${system}-components`,
+  ]).split('\n').filter(Boolean);
+
+  const changes = [];
+  const seen = new Set();
+  for (const sha of shas) {
+    const files = capture('git', ['diff-tree', '--no-commit-id', '--name-only', '-r', sha]).split('\n');
+    if (!files.some((file) => shippedSystemOf(file) === system)) continue;
+
+    let pr = null;
+    try {
+      const prs = JSON.parse(capture('gh', ['api', `repos/${repo}/commits/${sha}/pulls`]));
+      pr = prs.find((candidate) => candidate.merged_at) ?? null;
+    } catch {
+      // No API access (e.g. offline local run): fall back to the commit subject.
+    }
+    const key = pr ? `pr-${pr.number}` : sha;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    changes.push(
+      pr
+        ? { number: pr.number, title: pr.title, labels: pr.labels.map((label) => label.name) }
+        : { number: null, title: capture('git', ['log', '-1', '--format=%s', sha]), labels: [] },
+    );
+  }
+  return changes;
+}
+
+function createGithubRelease(system, version, workDir) {
   const tag = `${system}-v${version}`;
   if (releaseExists(tag)) {
     console.log(`GitHub release ${tag} already exists; skipping.`);
     return;
   }
-  const target = capture('git', ['rev-parse', 'HEAD']);
-  const ghArgs = ['release', 'create', tag, '--target', target, '--title', `${system} v${version}`, '--generate-notes'];
+  const repo = githubRepo(system);
   const prev = previousTag(system, version);
-  if (prev) ghArgs.push('--notes-start-tag', prev);
-  run('gh', ghArgs);
+  const notes = formatReleaseNotes({
+    system,
+    version,
+    repo,
+    previousTag: prev,
+    changes: prev ? collectChanges(system, prev, repo) : [],
+  });
+  const notesFile = path.join(workDir, `${tag}-notes.md`);
+  writeFileSync(notesFile, notes);
+  console.log(`Release notes for ${tag}:\n${notes}`);
+
+  const target = capture('git', ['rev-parse', 'HEAD']);
+  run('gh', ['release', 'create', tag, '--target', target, '--title', `${system} v${version}`, '--notes-file', notesFile]);
 }
 
 function assertLocalHeadIsMain() {
@@ -198,10 +249,26 @@ function release(system, version) {
       run('npm', ['publish', tarballs[kind], '--access', 'public']);
     }
 
-    if (!args['no-github']) createGithubRelease(system, version);
+    if (!args['no-github']) createGithubRelease(system, version, outDir);
   } finally {
     rmSync(outDir, { recursive: true, force: true });
   }
+}
+
+if (args.notes) {
+  if (!args.system || !args.version) die('Pass --system and --version with --notes.');
+  const repo = githubRepo(args.system);
+  const prev = previousTag(args.system, args.version);
+  console.log(
+    formatReleaseNotes({
+      system: args.system,
+      version: args.version,
+      repo,
+      previousTag: prev,
+      changes: prev ? collectChanges(args.system, prev, repo) : [],
+    }),
+  );
+  process.exit(0);
 }
 
 if (args.all) {
