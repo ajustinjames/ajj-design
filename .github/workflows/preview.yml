@@ -1,0 +1,49 @@
+name: Preview
+
+# Installable preview builds of every package for each PR, via pkg.pr.new.
+# Previews are hosted by pkg.pr.new, never published to npm, so they don't use
+# up versions or need cleanup. The workflow comments on the PR with install
+# commands, e.g.:
+#   npm i https://pkg.pr.new/@ajustinjames/hardline-components@<pr-number>
+#
+# Requires the pkg.pr.new GitHub App on this repo:
+#   https://github.com/apps/pkg-pr-new
+# No secrets: pkg.pr.new authenticates the run through the app.
+#
+# Preview builds get version 0.0.0-preview-<sha>, and each components preview
+# depends on the matching tokens preview from the same run.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r --filter './packages/*' build
+
+      - name: Publish previews
+        run: pnpm dlx pkg-pr-new@0.0.93 publish --pnpm --previewVersion --comment=update './packages/*'

@@ -1,10 +1,15 @@
 # ajj-design
 
-Industrial-material design system platform. The current system is `hardline`: framework-agnostic Web Components built with Lit, with design tokens compiled via Style Dictionary to CSS custom properties from a single source of truth.
+A multi-system design platform. Each design system ships as a pair of npm packages: framework-agnostic Web Components built with Lit, and design tokens compiled via Style Dictionary to CSS custom properties from a single source of truth.
+
+| System | Aesthetic | Elements |
+|---|---|---|
+| `hardline` | Industrial material: hard-cast shadows, 0px corners, no gradients | `hl-*` |
+| `glassline` | Liquid glass: translucent blurred surfaces, rounded geometry, specular highlights | `gl-*` |
 
 Live Storybook: https://ajustinjames.github.io/ajj-design/
 
-## Design Principles
+## Hardline Design Principles
 
 - **0px corner radii** — no pills, no rounded corners
 - **Hard-cast shadows only** — `2px 2px 0px #000`. No blur, no glow
@@ -19,6 +24,14 @@ Live Storybook: https://ajustinjames.github.io/ajj-design/
 |---|---|---|
 | `packages/hardline-tokens` | `@ajustinjames/hardline-tokens` | `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
 | `packages/hardline-components` | `@ajustinjames/hardline-components` | Lit Web Components consuming token CSS vars |
+| `packages/glassline-tokens` | `@ajustinjames/glassline-tokens` | `tokens.json` -> Style Dictionary -> `dist/web/tokens.css` |
+| `packages/glassline-components` | `@ajustinjames/glassline-components` | Lit Web Components consuming token CSS vars |
+
+Install a system's tokens and components together; they are always released at the same version:
+
+```bash
+npm install @ajustinjames/hardline-components @ajustinjames/hardline-tokens
+```
 
 ## Commands
 
@@ -148,6 +161,15 @@ Each new component needs:
 4. Barrel export in `packages/<system>-components/src/index.ts`
 
 All components extend `LitElement`. Properties that affect style use `reflect: true`. No internal state — visual shells only.
+
+## Releases
+
+- **Changelog:** [GitHub Releases](https://github.com/ajustinjames/ajj-design/releases). Each system is tagged `<system>-v<version>` (for example `hardline-v0.2.0`), and its release notes list only the changes to that system. There is no `CHANGELOG.md`.
+- **Versioning:** strict [semver](https://semver.org). Element tags, attributes, slots, parts, events, CSS custom properties (`--hl-*`, `--gl-*`) and package export paths are public API, so removing or renaming any of them is a major release. See [Versioning policy](AGENTS.md#versioning-policy) for the full rules.
+- **Provenance:** every release after a system's first is published from GitHub Actions with npm trusted publishing and carries a provenance attestation.
+- **Previews:** every pull request gets installable preview builds from [pkg.pr.new](https://pkg.pr.new), posted as a comment on the PR.
+
+Maintainers release by labeling a PR `patch`, `minor` or `major`. A new system's first release is published once with `pnpm release:launch <system>`. See [Release Workflow](AGENTS.md#release-workflow).
 
 ## Requirements
 

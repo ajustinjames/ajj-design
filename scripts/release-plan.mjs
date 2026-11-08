@@ -1,185 +1,168 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import path from 'node:path';
+import { appendFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import {
+  BUMPS,
+  discoverSystems,
+  latestPublishedVersion,
+  packageNames,
+  planRelease,
+  readManifest,
+  repoRoot,
+} from './release-lib.mjs';
 
 /**
- * Computes the release plan for every package "system" in this repo.
+ * Computes the release plan for every design system in this repo.
  *
- * A system is a pair of packages that release in lockstep:
- *   packages/<system>-tokens  +  packages/<system>-components
+ * Label mode (PRs and pushes to main): the PR's label (`patch|minor|major`)
+ * applies to every already-published system whose published
+ * files the PR changed. Changed files come from `git diff HEAD^1 HEAD`, which is
+ * the PR's changes both on the pull_request merge ref and on main after a
+ * squash merge (the only merge method main allows).
  *
- * The plan is derived purely from the working-tree manifest versions and what
- * is currently published on npm -- never from a git diff. This is what makes it
- * resilient to version bumps split across multiple PRs: the only invariant that
- * matters is the resulting tree state.
+ * Dispatch mode (manual Release run): --system and --bump select one system.
  *
- * Per system the action is one of:
- *   - "publish": tree version is the valid next semver above the published one
- *   - "skip":    tree version already matches the published one (no-op)
- *   - "error":   an invariant is violated (caller should fail the run)
+ * Versions are always computed from npm, never from package.json (a 0.0.0
+ * placeholder) or from git history.
  *
- * Modes:
- *   node scripts/release-plan.mjs            -> print plan, exit 1 on any error
- *   node scripts/release-plan.mjs --check    -> same, but a pre-merge dry-run
- *                                               (no side effects either way)
- *   node scripts/release-plan.mjs --json     -> emit the raw plan as JSON
+ * Usage:
+ *   node scripts/release-plan.mjs --labels '["minor"]'                      # labels + git diff
+ *   node scripts/release-plan.mjs --labels '["minor"]' --check              # pre-merge wording
+ *   node scripts/release-plan.mjs --labels '["minor"]' --files '["packages/hardline-components/src/x.ts"]'
+ *   node scripts/release-plan.mjs --system hardline --bump patch|minor|major|resume
+ *   node scripts/release-plan.mjs ... --json                                # raw plan on stdout
  *
- * When $GITHUB_OUTPUT is set, the plan is also written there as `plan=<json>`
- * so workflows can consume it without re-parsing stdout.
+ * Labels may also come from the RELEASE_LABELS env var (JSON array).
+ * Exits 1 if the plan contains an error.
+ * Writes `plan` and `has_publish` to $GITHUB_OUTPUT and a summary
+ * table to $GITHUB_STEP_SUMMARY when those are set.
  */
 
-const SCOPE = '@ajustinjames';
-const repoRoot = path.resolve(import.meta.dirname, '..');
-const packagesDir = path.join(repoRoot, 'packages');
+const { values: args } = parseArgs({
+  options: {
+    labels: { type: 'string' },
+    files: { type: 'string' },
+    system: { type: 'string' },
+    bump: { type: 'string' },
+    check: { type: 'boolean', default: false },
+    json: { type: 'boolean', default: false },
+  },
+});
 
-const args = new Set(process.argv.slice(2));
-const checkMode = args.has('--check');
-const jsonMode = args.has('--json');
+const systems = discoverSystems();
+const inputErrors = [];
 
-function readManifest(pkgDir) {
-  return JSON.parse(readFileSync(path.join(packagesDir, pkgDir, 'package.json'), 'utf8'));
-}
-
-function publishedVersion(pkgName) {
+function parseJsonArray(raw, what) {
   try {
-    return execFileSync('npm', ['view', pkgName, 'version'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-  } catch {
-    return null; // not published yet
+    const value = JSON.parse(raw);
+    if (Array.isArray(value)) return value;
+    throw new Error('not an array');
+  } catch (error) {
+    inputErrors.push(`Could not parse ${what} ${JSON.stringify(raw)} as a JSON array: ${error.message}`);
+    return [];
   }
 }
 
-function isSemver(version) {
-  return /^[0-9]+\.[0-9]+\.[0-9]+$/.test(version);
+function gitChangedFiles() {
+  try {
+    return execFileSync('git', ['diff', '--name-only', 'HEAD^1', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' })
+      .split('\n')
+      .filter(Boolean);
+  } catch (error) {
+    inputErrors.push(`Could not list changed files with git diff HEAD^1 HEAD (is the checkout deep enough?): ${error.message}`);
+    return [];
+  }
 }
 
-function nextVersions(published) {
-  const [major, minor, patch] = published.split('.').map(Number);
+let dispatch;
+let labels = [];
+let changedFiles = [];
+
+if (args.system || args.bump) {
+  const bumps = [...BUMPS, 'resume'];
+  if (!args.system || !args.bump) inputErrors.push('--system and --bump must be passed together');
+  else if (!systems.includes(args.system)) inputErrors.push(`Unknown system '${args.system}' (known: ${systems.join(', ')})`);
+  else if (!bumps.includes(args.bump)) inputErrors.push(`Unknown bump '${args.bump}'; expected one of ${bumps.join(', ')}`);
+  else dispatch = { system: args.system, bump: args.bump };
+} else {
+  labels = parseJsonArray(args.labels || process.env.RELEASE_LABELS || '[]', 'labels');
+  changedFiles = args.files ? parseJsonArray(args.files, 'files') : gitChangedFiles();
+}
+
+const states = systems.map((system) => {
+  const names = packageNames(system);
   return {
-    patch: `${major}.${minor}.${patch + 1}`,
-    minor: `${major}.${minor + 1}.0`,
-    major: `${major + 1}.0.0`,
+    system,
+    manifestVersions: {
+      tokens: readManifest(system, 'tokens').version,
+      components: readManifest(system, 'components').version,
+    },
+    published: {
+      tokens: latestPublishedVersion(names.tokens),
+      components: latestPublishedVersion(names.components),
+    },
   };
+});
+
+const plan = [
+  ...planRelease({ states, labels, changedFiles, dispatch }),
+  ...inputErrors.map((reason) => ({ system: '*', action: 'error', reason })),
+];
+
+const releases = plan.filter((entry) => entry.action === 'publish');
+const failed = plan.some((entry) => entry.action === 'error');
+
+function describe(entry) {
+  switch (entry.action) {
+    case 'publish':
+      return entry.bump === 'resume'
+        ? `resume ${entry.version} (${entry.published})`
+        : `publish ${entry.version} (${entry.bump} over ${entry.published})`;
+    default:
+      return entry.reason;
+  }
 }
 
-function hasManifest(pkgDir) {
-  return existsSync(path.join(packagesDir, pkgDir, 'package.json'));
-}
-
-function discoverSystems() {
-  const entries = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
-  const candidates = new Set();
-  for (const name of entries) {
-    const match = /^([a-z][a-z0-9-]*)-(tokens|components)$/.exec(name);
-    if (match) candidates.add(match[1]);
-  }
-  const systems = [];
-  for (const name of [...candidates].sort()) {
-    const hasTokens = hasManifest(`${name}-tokens`);
-    const hasComponents = hasManifest(`${name}-components`);
-    if (hasTokens && hasComponents) {
-      systems.push(name);
-    } else if (hasTokens) {
-      console.error(
-        `Warning: packages/${name}-tokens has no matching packages/${name}-components — skipping orphan`,
-      );
-    } else if (hasComponents) {
-      console.error(
-        `Warning: packages/${name}-components has no matching packages/${name}-tokens — skipping orphan`,
-      );
-    }
-  }
-  return systems;
-}
-
-function planForSystem(system) {
-  const tokensName = `${SCOPE}/${system}-tokens`;
-  const componentsName = `${SCOPE}/${system}-components`;
-  const fail = (reason) => ({ system, action: 'error', reason });
-
-  let tokens;
-  let components;
-  try {
-    tokens = readManifest(`${system}-tokens`);
-    components = readManifest(`${system}-components`);
-  } catch {
-    return fail(`Missing manifest for the ${system} package pair`);
-  }
-
-  const treeVersion = tokens.version;
-  if (treeVersion !== components.version) {
-    return fail(
-      `Package versions differ on the working tree: ${tokensName}=${tokens.version}, ${componentsName}=${components.version}. Both must move together.`,
-    );
-  }
-  if (!isSemver(treeVersion)) {
-    return fail(`Unsupported version '${treeVersion}' for ${system}; expected major.minor.patch`);
-  }
-
-  const tokensPublished = publishedVersion(tokensName);
-  const componentsPublished = publishedVersion(componentsName);
-
-  if ((tokensPublished === null) !== (componentsPublished === null)) {
-    return fail(
-      `Published state differs: ${tokensName}=${tokensPublished ?? 'unpublished'}, ${componentsName}=${componentsPublished ?? 'unpublished'}`,
-    );
-  }
-  if (tokensPublished !== null && tokensPublished !== componentsPublished) {
-    return fail(
-      `Published versions differ: ${tokensName}=${tokensPublished}, ${componentsName}=${componentsPublished}`,
-    );
-  }
-
-  const published = tokensPublished ?? '0.0.0';
-  if (!isSemver(published)) {
-    return fail(`Unsupported published version '${published}' for ${system}; expected major.minor.patch`);
-  }
-
-  if (treeVersion === published) {
-    return { system, action: 'skip', version: treeVersion, reason: 'Version already published' };
-  }
-
-  const next = nextVersions(published);
-  const bump = Object.keys(next).find((kind) => next[kind] === treeVersion);
-  if (!bump) {
-    return fail(
-      `Version ${treeVersion} is not a valid next semver after published ${published}. Use ${next.patch}, ${next.minor}, or ${next.major}.`,
-    );
-  }
-
-  return { system, action: 'publish', version: treeVersion, bump, published };
-}
-
-const plan = discoverSystems().map(planForSystem);
-
-const errors = plan.filter((entry) => entry.action === 'error');
-const publishes = plan.filter((entry) => entry.action === 'publish');
-
-if (jsonMode) {
+if (args.json) {
   process.stdout.write(`${JSON.stringify(plan)}\n`);
 } else {
   for (const entry of plan) {
-    if (entry.action === 'error') {
-      console.error(`::error::[${entry.system}] ${entry.reason}`);
-    } else if (entry.action === 'publish') {
-      console.log(`[${entry.system}] publish ${entry.version} (${entry.bump}) over ${entry.published}`);
-    } else {
-      console.log(`[${entry.system}] skip — ${entry.reason}`);
-    }
-  }
-  if (publishes.length === 0 && errors.length === 0) {
-    console.log(checkMode ? 'No pending release; nothing to publish.' : 'Nothing to publish.');
+    const line = `[${entry.system}] ${entry.action === 'skip' ? 'skip — ' : ''}${describe(entry)}`;
+    if (entry.action === 'error') console.error(`::error::${line}`);
+    else if (entry.action === 'warn') console.log(`::warning::${line}`);
+    else console.log(line);
   }
 }
 
 if (process.env.GITHUB_OUTPUT) {
-  const { appendFileSync } = await import('node:fs');
   appendFileSync(process.env.GITHUB_OUTPUT, `plan=${JSON.stringify(plan)}\n`);
-  appendFileSync(process.env.GITHUB_OUTPUT, `has_publish=${publishes.length > 0}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `has_publish=${plan.some((entry) => entry.action === 'publish')}\n`);
 }
 
-process.exit(errors.length > 0 ? 1 : 0);
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const lead = failed
+    ? '❌ The release plan has errors.'
+    : releases.length === 0
+      ? args.check
+        ? 'Merging this PR will **not** publish anything. Add a `patch`, `minor` or `major` label to release the systems it changes.'
+        : 'Nothing to publish.'
+      : `${args.check ? 'Merging this PR will publish' : 'Publishing'}: ${releases
+          .map((entry) => `**${entry.system} ${entry.version}**`)
+          .join(', ')}`;
+  const rows = plan.map((entry) => `| ${entry.system} | ${entry.action} | ${describe(entry).replaceAll('|', '\\|')} |`);
+  appendFileSync(
+    process.env.GITHUB_STEP_SUMMARY,
+    [
+      `### ${args.check ? 'Release preview (on merge)' : 'Release plan'}`,
+      '',
+      lead,
+      '',
+      '| System | Action | Detail |',
+      '|---|---|---|',
+      ...rows,
+      '',
+    ].join('\n'),
+  );
+}
+
+process.exit(failed ? 1 : 0);

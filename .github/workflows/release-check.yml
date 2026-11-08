@@ -1,13 +1,21 @@
 name: Release Check
 
-# Pre-merge guard: runs the same release-plan logic as Release, but read-only.
-# It fails the PR if the resulting tree would violate a release invariant
-# (e.g. tokens/components versions out of lockstep, or a non-sequential bump),
-# so a bad version state is caught before it merges instead of after.
+# Pre-merge guard and preview for label-driven releases. Runs the same plan
+# logic as the Release workflow against this PR's label (patch, minor, major)
+# and changed files, and writes "merging will publish X" to the job summary.
+# Re-runs when labels change, so the preview is always current.
+#
+# Fails the PR if:
+#   - more than one of patch/minor/major is set
+#   - a version label is set but the PR changes no shipped files of a released system
+#   - a package.json version was edited (versions are computed by CI)
+# A changed system that isn't on npm yet is reported with the local launch
+# command (`pnpm release:launch <system>`); CI never publishes it.
+
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 concurrency:
   group: release-check-${{ github.ref }}
@@ -16,12 +24,20 @@ concurrency:
 jobs:
   release-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      # The default pull_request ref is the PR merged into main, so HEAD^1..HEAD
+      # is exactly what the squash merge will land.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
 
       - name: Validate release plan
+        env:
+          RELEASE_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: node scripts/release-plan.mjs --check

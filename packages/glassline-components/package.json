@@ -1,6 +1,6 @@
 {
   "name": "@ajustinjames/glassline-components",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Framework-agnostic Lit Web Components (gl-*) for the Glassline liquid-glass design system.",
   "type": "module",
   "repository": {

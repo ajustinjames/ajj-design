@@ -1,28 +1,107 @@
 name: Release
 
+# Label-driven releases. On every push to main, reads the merged PR's labels
+# and the files it changed, then releases each affected design system with
+# npm OIDC trusted publishing (no npm token anywhere in CI):
+#
+#   patch | minor | major  bump every already-published system the PR changed
+#
+# Only changes to files that ship in the npm package count (not tests, stories
+# or test configs). Versions come from npm + label; the real version is stamped
+# into the manifests inside this run only, and nothing is committed to main.
+#
+# Manual runs (Actions → Release → Run workflow) take an explicit system and
+# bump: patch/minor/major, or resume to finish a release that published only
+# one of a system's two packages.
+#
+# A brand-new system is NOT released here: OIDC trusted publishing cannot
+# create packages that don't exist yet. Its first release is published locally
+# with `pnpm release:launch <system>`, which also registers this workflow as
+# the package's trusted publisher. Until then this workflow skips it.
+#
+# npm's trusted publisher config is bound to this file name (release.yml).
+# Renaming it breaks publishing until every package's trusted publisher is updated.
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      system:
+        description: Design system to release (e.g. hardline, glassline)
+        required: true
+        type: string
+      bump:
+        description: patch/minor/major over npm, or resume to finish a partial release
+        required: true
+        type: choice
+        options: [patch, minor, major, resume]
 
-# Never interrupt an in-flight publish; let pushes queue instead.
+# Never interrupt an in-flight publish; queue instead.
 concurrency:
   group: release-main
   cancel-in-progress: false
 
 jobs:
-  release:
+  plan:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      pull-requests: read # read the merged PR's labels
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      has_publish: ${{ steps.plan.outputs.has_publish }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2 # HEAD^1..HEAD = the squash-merged PR's changes
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Read release labels from the merged PR
+        id: labels
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          labels=$(gh api "repos/${REPO}/commits/${SHA}/pulls" \
+            | jq -c '[.[] | select(.merged_at != null and .base.ref == "main")][0] | if . == null then [] else [.labels[].name] end')
+          echo "Merged PR labels: ${labels}"
+          echo "labels=${labels}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute release plan
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_LABELS: ${{ steps.labels.outputs.labels }}
+          INPUT_SYSTEM: ${{ inputs.system }}
+          INPUT_BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            node scripts/release-plan.mjs --system "$INPUT_SYSTEM" --bump "$INPUT_BUMP"
+          else
+            node scripts/release-plan.mjs
+          fi
+
+  publish:
+    needs: plan
+    if: needs.plan.outputs.has_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag + GitHub release
       id-token: write # npm OIDC trusted publishing
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # tags, for release-note ranges
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
@@ -30,53 +109,18 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Update npm
-        run: npm install -g npm@^11.5.1
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Compute release plan
-        id: plan
-        run: node scripts/release-plan.mjs
-
-      - name: Publish releases
-        if: steps.plan.outputs.has_publish == 'true'
+      - name: Publish
         env:
-          PLAN: ${{ steps.plan.outputs.plan }}
+          PLAN: ${{ needs.plan.outputs.plan }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .release-tarballs
-
           echo "$PLAN" | jq -c '.[] | select(.action == "publish")' | while read -r entry; do
-            SYSTEM=$(echo "$entry" | jq -r '.system')
-            VERSION=$(echo "$entry" | jq -r '.version')
-            TAG="${SYSTEM}-v${VERSION}"
-
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
-              echo "::error::Tag ${TAG} already exists"
-              exit 1
-            fi
-
-            echo "Releasing ${SYSTEM} v${VERSION}"
-
-            pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
-            pnpm --filter "@ajustinjames/${SYSTEM}-components" build
-
-            pnpm --dir "packages/${SYSTEM}-tokens" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
-            pnpm --dir "packages/${SYSTEM}-components" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
-
-            TOKENS_TGZ=".release-tarballs/ajustinjames-${SYSTEM}-tokens-${VERSION}.tgz"
-            COMPONENTS_TGZ=".release-tarballs/ajustinjames-${SYSTEM}-components-${VERSION}.tgz"
-
-            node scripts/verify-publish-metadata.mjs "$TOKENS_TGZ" "$COMPONENTS_TGZ"
-
-            npm publish "$TOKENS_TGZ" --access public
-            npm publish "$COMPONENTS_TGZ" --access public
-
-            git tag "$TAG"
-            git push origin "refs/tags/${TAG}"
-
-            gh release create "$TAG" --title "${SYSTEM} v${VERSION}" --generate-notes
+            node scripts/release-publish.mjs \
+              --system "$(echo "$entry" | jq -r '.system')" \
+              --version "$(echo "$entry" | jq -r '.version')"
           done
+
