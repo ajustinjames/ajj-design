@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-link/ds-link.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-link',
+  title: 'Hardline/hl-link',
   tags: ['autodocs'],
   render: ({ tone, label }) => html`
     <hl-link tone="${tone}"><a href="#">${label}</a></hl-link>

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-checkbox/ds-checkbox.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-checkbox',
+  title: 'Hardline/hl-checkbox',
   tags: ['autodocs'],
   render: ({ checked, disabled, label }) => html`
     <hl-checkbox ?disabled="${disabled}">

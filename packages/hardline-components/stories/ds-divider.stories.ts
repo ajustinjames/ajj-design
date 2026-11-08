@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-divider/ds-divider.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-divider',
+  title: 'Hardline/hl-divider',
   tags: ['autodocs'],
   render: ({ orientation, tone }) => html`
     <div style="${orientation === 'vertical' ? 'display:flex;height:60px;gap:16px;align-items:center;' : 'width:280px;display:flex;flex-direction:column;gap:8px;'}">

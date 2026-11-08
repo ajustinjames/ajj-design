@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-radio/ds-radio.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-radio',
+  title: 'Hardline/hl-radio',
   tags: ['autodocs'],
   render: ({ checked, disabled }) => html`
     <fieldset style="border:none;padding:0;display:flex;flex-direction:column;gap:8px;">

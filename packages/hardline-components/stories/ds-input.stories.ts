@@ -28,7 +28,7 @@ const renderInput = ({ state, density, clinical, withUnit, withLabel }: DsInputA
 `;
 
 const meta: Meta<DsInputArgs> = {
-  title: 'Atoms/hl-input',
+  title: 'Hardline/hl-input',
   tags: ['autodocs'],
   render: (args) => renderInput(args),
   argTypes: {

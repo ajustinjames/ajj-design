@@ -5,7 +5,7 @@ import '../src/ds-label/ds-label.js';
 type DsLabelArgs = { tone: 'default' | 'muted' | 'accent'; text: string };
 
 const meta: Meta<DsLabelArgs> = {
-  title: 'Atoms/hl-label',
+  title: 'Hardline/hl-label',
   tags: ['autodocs'],
   render: ({ tone, text }) => html`<hl-label tone="${tone}">${text}</hl-label>`,
   argTypes: {

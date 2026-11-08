@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-avatar/ds-avatar.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-avatar',
+  title: 'Hardline/hl-avatar',
   tags: ['autodocs'],
   render: ({ size, initials }) => html`
     <hl-avatar size="${size}" initials="${initials || ''}">

@@ -15,7 +15,7 @@ const fieldStyle = [
 ].join(';');
 
 const meta: Meta = {
-  title: 'Atoms/hl-helper-text',
+  title: 'Hardline/hl-helper-text',
   tags: ['autodocs'],
   render: ({ text }) => html`
     <div style="display:flex;flex-direction:column;gap:4px;width:280px;">

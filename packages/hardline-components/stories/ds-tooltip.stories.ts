@@ -4,7 +4,7 @@ import '../src/ds-btn/ds-btn.js';
 import '../src/ds-tooltip/ds-tooltip.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-tooltip',
+  title: 'Hardline/hl-tooltip',
   tags: ['autodocs'],
   render: ({ placement, content }) => html`
     <div style="padding:60px;display:inline-block;">

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-select/ds-select.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-select',
+  title: 'Hardline/hl-select',
   tags: ['autodocs'],
   render: ({ state, disabled }) => html`
     <hl-select state="${state}" ?disabled="${disabled}" style="width:240px;">

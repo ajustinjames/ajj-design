@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-breadcrumb/ds-breadcrumb.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-breadcrumb',
+  title: 'Hardline/hl-breadcrumb',
   tags: ['autodocs'],
   render: () => html`
     <hl-breadcrumb>

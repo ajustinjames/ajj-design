@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-tag/ds-tag.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-tag',
+  title: 'Hardline/hl-tag',
   tags: ['autodocs'],
   render: ({ label, dismissible }) => html`
     <hl-tag ?dismissible="${dismissible}">
