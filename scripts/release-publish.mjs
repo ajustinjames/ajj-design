@@ -67,6 +67,17 @@ function die(message) {
   process.exit(1);
 }
 
+// npm OIDC trusted publishing needs npm >= 11.5.1 (Node >= 24.5 bundles it).
+// Older npm fails with a misleading E404, so check up front.
+const MIN_NPM = '11.5.1';
+
+function assertNpmVersion() {
+  const npmVersion = capture('npm', ['--version']);
+  if (!isSemver(npmVersion) || compareSemver(npmVersion, MIN_NPM) < 0) {
+    die(`npm ${npmVersion} is too old to publish; need >= ${MIN_NPM} (use Node >= 24.5).`);
+  }
+}
+
 function assertPublishable(system, version) {
   const names = packageNames(system);
   for (const kind of KINDS) {
@@ -167,6 +178,7 @@ function release(system, version) {
   console.log(`\n=== ${system} ${version}${dryRun ? ' (dry run)' : ''} ===`);
 
   if (!dryRun) {
+    assertNpmVersion();
     assertPublishable(system, version);
     if (!args['no-github']) assertLocalHeadIsMain();
   }
