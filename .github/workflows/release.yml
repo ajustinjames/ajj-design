@@ -5,6 +5,7 @@ name: Release
 # npm OIDC trusted publishing (no npm token anywhere in CI):
 #
 #   patch | minor | major  bump every already-published system the PR changed
+#   skip-release           publish nothing, regardless of other labels
 #
 # Only changes to files that ship in the npm package count (not tests, stories
 # or test configs). Versions come from npm + label; the real version is stamped
@@ -75,8 +76,13 @@ jobs:
           echo "Merged PR labels: ${labels}"
           echo "labels=${labels}" >> "$GITHUB_OUTPUT"
 
+      - name: Skip (skip-release label)
+        if: github.event_name == 'push' && contains(steps.labels.outputs.labels, '"skip-release"')
+        run: echo "### Release: skipped (\`skip-release\` label on the merged PR)." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Compute release plan
         id: plan
+        if: github.event_name != 'push' || !contains(steps.labels.outputs.labels, '"skip-release"')
         env:
           EVENT: ${{ github.event_name }}
           RELEASE_LABELS: ${{ steps.labels.outputs.labels }}

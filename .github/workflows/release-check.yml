@@ -9,6 +9,9 @@ name: Release Check
 #   - more than one of patch/minor/major is set
 #   - a version label is set but the PR changes no shipped files of a released system
 #   - a package.json version was edited (versions are computed by CI)
+# The `skip-release` label short-circuits all of the above: the check passes
+# without validating, and merging publishes nothing.
+#
 # A changed system that isn't on npm yet is reported with the local launch
 # command (`pnpm release:launch <system>`); CI never publishes it.
 
@@ -37,7 +40,14 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Skip (skip-release label)
+        if: contains(github.event.pull_request.labels.*.name, 'skip-release')
+        run: |
+          echo "skip-release label set: skipping release validation."
+          echo "### Release: skipped (\`skip-release\` label). Merging this PR will publish nothing." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Validate release plan
+        if: "!contains(github.event.pull_request.labels.*.name, 'skip-release')"
         env:
           RELEASE_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: node scripts/release-plan.mjs --check

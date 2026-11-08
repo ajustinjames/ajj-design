@@ -59,7 +59,9 @@ repo never stores a real version.
     system the PR changed** by that amount, computed from each system's own
     npm version (for example hardline `0.1.0` + `minor` = `0.2.0`).
   - A PR may carry at most one of `patch`, `minor` and `major`. PRs without
-    a release label publish nothing. Docs, CI, Storybook-only and
+    a release label publish nothing. `skip-release` makes both
+    `release-check` and `release.yml` exit early without validating or
+    publishing, whatever other labels are set. Docs, CI, Storybook-only and
     dependency PRs normally get no label.
 - "Changed" means the PR touches files that ship in the npm package:
   `src/`, `tokens.json`, `sd.config.js`, `tsconfig.build.json`, `package.json`,
