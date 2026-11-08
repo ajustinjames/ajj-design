@@ -24,19 +24,19 @@ import {
  *
  * Usage:
  *   node scripts/release-publish.mjs --system hardline --version 0.2.0
- *   node scripts/release-publish.mjs --system newsys --version 0.1.0 --bootstrap
+ *   node scripts/release-publish.mjs --system newsys --version 0.1.0 --launch
  *   node scripts/release-publish.mjs --all --dry-run          # pack + verify every system
  *
  * Flags:
- *   --bootstrap  First release of a system. Requires the packages to be absent
+ *   --launch     First release of a system. Requires the packages to be absent
  *                from npm (or present at exactly --version, from a partial run).
  *                Without it, both packages must already exist on npm, because
  *                OIDC trusted publishing cannot create new packages.
  *   --dry-run    Build, pack and verify only. No npm publish, tag or release.
  *   --no-github  Publish to npm but skip the tag + GitHub release.
  *
- * Auth comes from the environment: OIDC in the Release workflow, NODE_AUTH_TOKEN
- * in the Release Bootstrap workflow, or your `npm login` session locally.
+ * Auth comes from the environment: OIDC in the Release workflow's publish job,
+ * NODE_AUTH_TOKEN in its launch job, or your `npm login` session locally.
  */
 
 const { values: args } = parseArgs({
@@ -44,7 +44,7 @@ const { values: args } = parseArgs({
     system: { type: 'string' },
     version: { type: 'string' },
     all: { type: 'boolean', default: false },
-    bootstrap: { type: 'boolean', default: false },
+    launch: { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
     'no-github': { type: 'boolean', default: false },
   },
@@ -71,15 +71,15 @@ function assertPublishable(system, version) {
   const names = packageNames(system);
   for (const kind of KINDS) {
     const latest = latestPublishedVersion(names[kind]);
-    if (args.bootstrap) {
+    if (args.launch) {
       if (latest !== null && latest !== version) {
         die(
-          `${names[kind]} is already published (latest ${latest}). Bootstrap is only for a system's first release; use a release label instead.`,
+          `${names[kind]} is already published (latest ${latest}). The launch label is only for a system's first release; use patch, minor or major.`,
         );
       }
     } else if (latest === null) {
       die(
-        `${names[kind]} has never been published. OIDC trusted publishing can't create packages; run the Release Bootstrap workflow for ${system}.`,
+        `${names[kind]} has never been published. OIDC trusted publishing can't create packages; release ${system} with the launch label first.`,
       );
     } else if (compareSemver(version, latest) < 0) {
       die(`Refusing to publish ${names[kind]}@${version}: it is lower than the latest published ${latest}.`);

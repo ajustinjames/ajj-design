@@ -1,18 +1,25 @@
 name: Release
 
-# Label-driven releases for systems that already exist on npm.
+# Label-driven releases. On every push to main, reads the merged PR's labels
+# and the files it changed, then releases each affected design system:
 #
-# On every push to main, finds the merged PR for the pushed commit and reads its
-# release labels (`<system>:<patch|minor|major>`). For each labeled system it
-# computes the next version from npm, stamps it into the manifests inside this
-# run only, then publishes via npm OIDC trusted publishing and creates the
-# `<system>-v<version>` tag + GitHub release. Nothing is committed to main.
+#   patch | minor | major  bump every already-published system the PR changed
+#                          (publish job, npm OIDC trusted publishing)
+#   launch                 first release (0.1.0) of every never-published
+#                          system the PR changed (launch job, NPM_TOKEN)
 #
-# Run it manually (workflow_dispatch) to release without a PR label, or with
-# bump=resume to finish a release that published only one of a system's packages.
+# A PR can carry one of patch/minor/major plus launch. Only changes to files
+# that ship in the npm package count (not tests, stories or test configs).
+# Versions come from npm + label; the real version is stamped into the
+# manifests inside this run only, and nothing is committed back to main.
 #
-# A system's FIRST release goes through release-bootstrap.yml instead: OIDC
-# trusted publishing cannot create packages that don't exist yet.
+# Manual runs (Actions → Release → Run workflow) take an explicit system and
+# bump: patch/minor/major/launch, or resume to finish a release that published
+# only one of a system's two packages.
+#
+# Why launch is a separate job: OIDC trusted publishing cannot create a package
+# that doesn't exist yet, so a first release needs a token. After a launch, run
+# `pnpm release:trust <system>` once locally (npm trust needs interactive 2FA).
 #
 # npm's trusted publisher config is bound to this file name (release.yml).
 # Renaming it breaks publishing until every package's trusted publisher is updated.
@@ -27,39 +34,35 @@ on:
         required: true
         type: string
       bump:
-        description: Version bump over the published npm version
+        description: patch/minor/major over npm, launch for a first release, resume to finish a partial one
         required: true
         type: choice
-        options: [patch, minor, major, resume]
+        options: [patch, minor, major, launch, resume]
 
-# Never interrupt an in-flight publish; queue instead. Shared with Release Bootstrap.
+# Never interrupt an in-flight publish; queue instead.
 concurrency:
   group: release-main
   cancel-in-progress: false
 
 jobs:
-  release:
+  plan:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # tag + GitHub release
-      id-token: write # npm OIDC trusted publishing
+      contents: read
       pull-requests: read # read the merged PR's labels
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      has_publish: ${{ steps.plan.outputs.has_publish }}
+      has_launch: ${{ steps.plan.outputs.has_launch }}
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # tags, for release-note ranges
-
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+          fetch-depth: 2 # HEAD^1..HEAD = the squash-merged PR's changes
 
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm
-        run: npm install -g npm@^11.5.1
 
       - name: Read release labels from the merged PR
         id: labels
@@ -89,14 +92,35 @@ jobs:
             node scripts/release-plan.mjs
           fi
 
+  publish:
+    needs: plan
+    if: needs.plan.outputs.has_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag + GitHub release
+      id-token: write # npm OIDC trusted publishing
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tags, for release-note ranges
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@^11.5.1
+
       - name: Install dependencies
-        if: steps.plan.outputs.has_publish == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Publish
-        if: steps.plan.outputs.has_publish == 'true'
         env:
-          PLAN: ${{ steps.plan.outputs.plan }}
+          PLAN: ${{ needs.plan.outputs.plan }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -106,28 +130,66 @@ jobs:
               --version "$(echo "$entry" | jq -r '.version')"
           done
 
-  sync-labels:
-    # Keep `<system>:<patch|minor|major>` labels in sync with packages/*, so a
-    # newly scaffolded system gets its release labels automatically.
-    if: github.ref == 'refs/heads/main'
+  launch:
+    needs: plan
+    if: needs.plan.outputs.has_launch == 'true'
     runs-on: ubuntu-latest
+    # Holds the NPM_TOKEN secret, so the token is only exposed to this job.
+    # Add required reviewers to the environment for an approval gate.
+    environment: npm-launch
     permissions:
-      issues: write
+      contents: write # tag + GitHub release
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Create or update release labels
+      - name: Update npm
+        run: npm install -g npm@^11.5.1
+
+      - name: Require NPM_TOKEN
         env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is not set on the npm-launch environment. Create an npm granular access token with read/write access to the @ajustinjames scope and add it there, then re-run this job."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # NOTE: npm is removing direct publishing with 2FA-bypass granular tokens
+      # (announced for January 2027). After that, launch locally instead, with
+      # `npm login` on a checkout of origin/main:
+      #   node scripts/release-publish.mjs --system <system> --version 0.1.0 --launch
+      - name: Publish first release
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          systems=$(node --input-type=module -e "import { discoverSystems } from './scripts/release-lib.mjs'; console.log(discoverSystems().join(' '))")
-          for system in $systems; do
-            gh label create "${system}:patch" --force --color 0E8A16 --description "Release ${system} with a patch bump on merge"
-            gh label create "${system}:minor" --force --color 1D76DB --description "Release ${system} with a minor bump on merge"
-            gh label create "${system}:major" --force --color B60205 --description "Release ${system} with a major bump on merge"
+          echo "$PLAN" | jq -c '.[] | select(.action == "launch")' | while read -r entry; do
+            system=$(echo "$entry" | jq -r '.system')
+            version=$(echo "$entry" | jq -r '.version')
+            node scripts/release-publish.mjs --system "$system" --version "$version" --launch
+            {
+              echo "### ${system} ${version} launched 🎉"
+              echo ""
+              echo "**One more step, once, locally:** register release.yml as the npm trusted publisher so patch/minor/major releases work:"
+              echo ""
+              echo '```sh'
+              echo "npm login   # if needed; npm trust requires interactive 2FA"
+              echo "pnpm release:trust ${system}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           done

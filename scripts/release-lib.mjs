@@ -11,18 +11,26 @@ import path from 'node:path';
  * at release time from the PR's release label and what is already on npm,
  * stamps it into the manifests inside the CI run only, then packs, publishes
  * and tags. Nothing is ever committed back to the repo.
+ *
+ * Release labels (one PR may carry one bump label, plus `launch`):
+ *   patch | minor | major  bump every already-published system the PR changed
+ *   launch                 first release (LAUNCH_VERSION) of every never-published
+ *                          system the PR changed
+ * Which systems a PR "changed" is derived from its files: only files that end
+ * up in the published package count (tests, stories, test configs don't).
  */
 
 export const SCOPE = '@ajustinjames';
 export const PLACEHOLDER_VERSION = '0.0.0';
 export const BUMPS = ['patch', 'minor', 'major'];
+export const LAUNCH = 'launch';
+export const LAUNCH_VERSION = '0.1.0';
 export const RELEASE_WORKFLOW_FILE = 'release.yml';
 
 export const repoRoot = path.resolve(import.meta.dirname, '..');
 export const packagesDir = path.join(repoRoot, 'packages');
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const LABEL = /^([a-z][a-z0-9-]*):(patch|minor|major)$/;
 
 export function isSemver(version) {
   return typeof version === 'string' && SEMVER.test(version);
@@ -92,35 +100,6 @@ export function discoverSystems({ warn = (msg) => console.error(msg) } = {}) {
   return systems;
 }
 
-/**
- * Parse release labels of the form `<system>:<patch|minor|major>`.
- * Labels that don't match the pattern (e.g. "dependencies") are ignored.
- * Returns { requests: Map<system, bump>, errors: string[] }.
- */
-export function parseReleaseLabels(labels, systems) {
-  const requests = new Map();
-  const errors = [];
-  const known = new Set(systems);
-
-  for (const label of labels) {
-    const match = LABEL.exec(label);
-    if (!match) continue;
-    const [, system, bump] = match;
-    if (!known.has(system)) {
-      errors.push(`Label '${label}' refers to unknown system '${system}' (known: ${systems.join(', ')})`);
-      continue;
-    }
-    if (requests.has(system)) {
-      errors.push(
-        `Multiple release labels for ${system}: '${system}:${requests.get(system)}' and '${label}'. Keep exactly one.`,
-      );
-      continue;
-    }
-    requests.set(system, bump);
-  }
-  return { requests, errors };
-}
-
 function npmView(args) {
   try {
     return execFileSync('npm', ['view', ...args], {
@@ -148,69 +127,184 @@ export function isVersionPublished(pkgName, version) {
   return npmView([`${pkgName}@${version}`, 'version']) === version;
 }
 
+
+// Paths inside a package directory that never reach the published tarball.
+const NOT_SHIPPED = [
+  /^test\//,
+  /^stories\//,
+  /^tsconfig\.json$/,
+  /^tsconfig\.test\.json$/,
+  /^playwright\.config\./,
+  /^web-test-runner\.config\./,
+];
+
+/** The system a changed file belongs to if it affects a published package, else null. */
+export function shippedSystemOf(file) {
+  const match = /^packages\/([a-z][a-z0-9-]*)-(?:tokens|components)\/(.+)$/.exec(file);
+  if (!match) return null;
+  const [, system, rest] = match;
+  return NOT_SHIPPED.some((pattern) => pattern.test(rest)) ? null : system;
+}
+
+/** Systems whose published packages are affected by a list of changed files. */
+export function changedSystems(files, systems) {
+  const known = new Set(systems);
+  return new Set(files.map(shippedSystemOf).filter((system) => system && known.has(system)));
+}
+
 /**
- * Decide what to do for one system. Pure: all registry/manifest state is
+ * Parse PR labels. Unrelated labels (e.g. "dependencies") are ignored.
+ * Returns { bump: 'patch'|'minor'|'major'|null, launch: boolean, errors: string[] }.
+ */
+export function parseReleaseLabels(labels) {
+  const bumps = labels.filter((label) => BUMPS.includes(label));
+  const errors = [];
+  if (bumps.length > 1) {
+    errors.push(`Multiple version labels (${bumps.join(', ')}). Keep at most one of patch, minor, major.`);
+  }
+  return { bump: bumps[0] ?? null, launch: labels.includes(LAUNCH), errors };
+}
+
+function publishStatus({ tokens, components }) {
+  if (tokens === null && components === null) return 'unpublished';
+  if (tokens === null || components === null) return 'partial-first';
+  return tokens === components ? 'published' : 'partial';
+}
+
+function describeState(system, { tokens, components }) {
+  const names = packageNames(system);
+  return `${names.tokens}=${tokens ?? 'unpublished'}, ${names.components}=${components ?? 'unpublished'}`;
+}
+
+/**
+ * Turn a request for one system into a plan entry. Requests:
+ * patch|minor|major|launch|resume, or undefined with a skip reason.
+ */
+function resolve(system, published, request, skipReason) {
+  const status = publishStatus(published);
+  const state = describeState(system, published);
+  const fail = (reason) => ({ system, action: 'error', reason });
+
+  if (!request) {
+    if (status === 'partial-first') {
+      return { system, action: 'warn', reason: `partial first release (${state}); finish it with the launch label or a manual Release run with bump=launch` };
+    }
+    if (status === 'partial') {
+      return { system, action: 'warn', reason: `partial release (${state}); finish it with a manual Release run with bump=resume` };
+    }
+    return { system, action: 'skip', reason: skipReason };
+  }
+
+  if (request === LAUNCH) {
+    if (status === 'unpublished') {
+      return { system, action: 'launch', version: LAUNCH_VERSION, bump: LAUNCH, published: 'unpublished' };
+    }
+    if (status === 'partial-first') {
+      // Finish a first release that published only one package, at its version.
+      return { system, action: 'launch', version: published.tokens ?? published.components, bump: LAUNCH, published: state };
+    }
+    return fail(`${system} is already on npm (${state}); launch is only for a system's first release. Use patch, minor or major.`);
+  }
+
+  if (status === 'unpublished' || status === 'partial-first') {
+    return fail(`${system} has never been fully published (${state}). Its first release needs the launch label.`);
+  }
+
+  if (status === 'partial') {
+    if (request === 'resume') {
+      const version = compareSemver(published.tokens, published.components) > 0 ? published.tokens : published.components;
+      return { system, action: 'publish', version, bump: 'resume', published: state };
+    }
+    return fail(`Partial release detected (${state}). Finish it first with a manual Release run with bump=resume.`);
+  }
+
+  if (request === 'resume') {
+    return { system, action: 'skip', reason: `nothing to resume (both packages at ${published.tokens})` };
+  }
+  return { system, action: 'publish', version: bumpVersion(published.tokens, request), bump: request, published: published.tokens };
+}
+
+/**
+ * Compute the release plan. Pure: all registry, manifest and git state is
  * passed in, so this is unit-tested directly.
  *
  * @param {object} input
- * @param {string} input.system
- * @param {{tokens: string, components: string}} input.manifestVersions
- * @param {{tokens: string|null, components: string|null}} input.published
- * @param {string|undefined} input.request  patch|minor|major|resume|undefined
+ * @param {Array<{system: string, manifestVersions: {tokens: string, components: string}, published: {tokens: string|null, components: string|null}}>} input.states
+ * @param {string[]} [input.labels]        PR labels (label mode)
+ * @param {string[]} [input.changedFiles]  files changed by the PR (label mode)
+ * @param {{system: string, bump: string}} [input.dispatch]  manual run instead of labels
+ * @returns {Array<object>} one entry per system, plus `system: '*'` entries for global errors
  */
-export function planForSystem({ system, manifestVersions, published, request }) {
-  const fail = (reason) => ({ system, action: 'error', reason });
-  const names = packageNames(system);
+export function planRelease({ states, labels = [], changedFiles = [], dispatch }) {
+  const plan = [];
+  const systems = states.map((state) => state.system);
+  const { bump, launch, errors } = dispatch ? { bump: null, launch: false, errors: [] } : parseReleaseLabels(labels);
+  const changed = changedSystems(changedFiles, systems);
 
-  for (const kind of ['tokens', 'components']) {
-    if (manifestVersions[kind] !== PLACEHOLDER_VERSION) {
-      return fail(
-        `${names[kind]} has version '${manifestVersions[kind]}' in package.json. Versions are computed by CI from release labels; keep it at ${PLACEHOLDER_VERSION}.`,
+  for (const { system, manifestVersions, published } of states) {
+    const names = packageNames(system);
+    const edited = ['tokens', 'components'].find((kind) => manifestVersions[kind] !== PLACEHOLDER_VERSION);
+    if (edited) {
+      plan.push({
+        system,
+        action: 'error',
+        reason: `${names[edited]} has version '${manifestVersions[edited]}' in package.json. Versions are computed by CI from release labels; keep it at ${PLACEHOLDER_VERSION}.`,
+      });
+      continue;
+    }
+    for (const kind of ['tokens', 'components']) {
+      if (published[kind] !== null && !isSemver(published[kind])) {
+        plan.push({ system, action: 'error', reason: `Unsupported published version ${names[kind]}@${published[kind]}` });
+      }
+    }
+    if (plan.at(-1)?.system === system) continue;
+
+    if (dispatch) {
+      plan.push(
+        dispatch.system === system
+          ? resolve(system, published, dispatch.bump)
+          : resolve(system, published, undefined, 'not selected'),
       );
+      continue;
+    }
+
+    const status = publishStatus(published);
+    const isNew = status === 'unpublished' || status === 'partial-first';
+    let request;
+    let skipReason;
+    if (!changed.has(system)) {
+      skipReason = 'no changes to published files';
+    } else if (isNew) {
+      if (launch) request = LAUNCH;
+      else if (bump) request = bump; // resolve() turns this into "needs the launch label"
+      else skipReason = 'never published; add the launch label to release it';
+    } else if (bump) {
+      request = bump;
+    } else {
+      skipReason = launch ? 'already published; launch only applies to new systems' : 'no release label';
+    }
+    plan.push(resolve(system, published, request, skipReason));
+  }
+
+  for (const reason of errors) plan.push({ system: '*', action: 'error', reason });
+
+  if (!dispatch) {
+    const hasErrors = plan.some((entry) => entry.action === 'error');
+    if (!hasErrors && bump && !plan.some((entry) => entry.action === 'publish')) {
+      plan.push({
+        system: '*',
+        action: 'error',
+        reason: `The ${bump} label is set, but this PR changes no published files of an already-released system (${systems.join(', ')}). Remove the label, or change shipped files.`,
+      });
+    }
+    if (!hasErrors && launch && !plan.some((entry) => entry.action === 'launch')) {
+      plan.push({
+        system: '*',
+        action: 'error',
+        reason: 'The launch label is set, but this PR changes no system that has never been published.',
+      });
     }
   }
 
-  for (const kind of ['tokens', 'components']) {
-    if (published[kind] !== null && !isSemver(published[kind])) {
-      return fail(`Unsupported published version ${names[kind]}@${published[kind]}; expected major.minor.patch`);
-    }
-  }
-
-  const { tokens, components } = published;
-
-  if (tokens === null && components === null) {
-    if (request) {
-      return fail(
-        `${system} has never been published to npm, so it can't be released by label. Run the "Release Bootstrap" workflow for ${system} first (see AGENTS.md → Release Workflow).`,
-      );
-    }
-    return { system, action: 'skip', reason: 'never published (use the Release Bootstrap workflow)' };
-  }
-
-  if (tokens !== components) {
-    // A previous release published one package but not the other.
-    const state = `${names.tokens}=${tokens ?? 'unpublished'}, ${names.components}=${components ?? 'unpublished'}`;
-    if (tokens === null || components === null) {
-      // OIDC can't create the missing package; only the bootstrap path can.
-      const reason = `partial first release (${state}); re-run the Release Bootstrap workflow for ${system} with version ${tokens ?? components}`;
-      return request ? fail(reason) : { system, action: 'warn', reason };
-    }
-    const pending = compareSemver(tokens, components) > 0 ? tokens : components;
-    if (request === 'resume') {
-      return { system, action: 'publish', version: pending, bump: 'resume', published: state };
-    }
-    if (request) {
-      return fail(`Partial release detected (${state}). Finish it first: run the Release workflow manually with system=${system}, bump=resume.`);
-    }
-    return { system, action: 'warn', reason: `partial release detected (${state}); run Release with bump=resume` };
-  }
-
-  if (!request) {
-    return { system, action: 'skip', reason: `no release label (published ${tokens})` };
-  }
-  if (request === 'resume') {
-    return { system, action: 'skip', reason: `nothing to resume (both packages at ${tokens})` };
-  }
-
-  return { system, action: 'publish', version: bumpVersion(tokens, request), bump: request, published: tokens };
+  return plan;
 }

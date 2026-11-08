@@ -40,7 +40,7 @@ pnpm verify:publish-metadata
 
 # Release tooling (see Release Workflow)
 pnpm test:release                                # unit tests for the release logic
-pnpm release:plan --labels '["hardline:minor"]'  # preview what a label would publish
+pnpm release:plan --labels '["minor"]'           # preview a label against HEAD^1..HEAD
 pnpm release:dry-run                             # build + pack + verify every system
 pnpm release:trust <system>                      # one-time npm trusted-publisher setup
 ```
@@ -52,67 +52,74 @@ repo never stores a real version.
 
 - Every `packages/<system>-{tokens,components}/package.json` keeps
   `"version": "0.0.0"`. Never edit it: `release-check` fails the PR if you do.
-- To release, add exactly one label per system to the PR:
-  `<system>:patch`, `<system>:minor`, or `<system>:major` (for example
-  `hardline:minor`). PRs without a release label publish nothing. Docs, CI,
-  Storybook-only and dependency PRs normally get no label.
-- On merge, `.github/workflows/release.yml` computes the next version from the
-  published npm version (for example `0.1.0` + `minor` = `0.2.0`), stamps it into
-  the manifests inside the CI run only, builds, packs, verifies publish
-  metadata, publishes via npm OIDC trusted publishing, and creates the
-  `<system>-v<version>` tag and GitHub release. Nothing is committed back to
-  `main`, so the `main` ruleset needs no bypass.
+- Release labels:
+  - `patch`, `minor`, `major`: on merge, bump **every already-published
+    system the PR changed** by that amount, computed from each system's own
+    npm version (for example hardline `0.1.0` + `minor` = `0.2.0`).
+  - `launch`: on merge, publish the first release (`0.1.0`) of every
+    never-published system the PR changed.
+  - A PR may carry at most one of `patch`, `minor` and `major`, plus `launch`.
+    PRs without a release label publish nothing. Docs, CI, Storybook-only and
+    dependency PRs normally get no label.
+- "Changed" means the PR touches files that ship in the npm package:
+  `src/`, `tokens.json`, `sd.config.js`, `tsconfig.build.json`, `package.json`,
+  `README.md`. Changes under `test/` or `stories/`, or to test configs, don't
+  count, so a `patch` label on a tests-only PR fails `release-check`.
 - A system's tokens and components packages always release together at the
   same version.
-- Versions are computed at merge time, so concurrent PRs can't collide. Two
-  PRs labeled `hardline:minor` produce `0.2.0` and then `0.3.0`.
+- `release-check.yml` runs on every PR, including label changes. It writes a
+  "Merging this PR will publish …" preview to the job summary and fails on
+  conflicting or pointless labels.
+- On merge, `release.yml` stamps the computed version into the manifests
+  inside the CI run only, then builds, packs, verifies publish metadata,
+  publishes, and creates the `<system>-v<version>` tag and GitHub release.
+  Nothing is committed back to `main`, so the `main` ruleset needs no bypass.
+  Changed files are read from `HEAD^1..HEAD`, which relies on `main` allowing
+  only squash merges (enforced by the ruleset).
 
 The scripts:
-- `scripts/release-lib.mjs`: shared logic (system discovery, label parsing,
-  version math, the per-system plan). Unit-tested by `pnpm test:release`.
-- `scripts/release-plan.mjs`: decides what to publish. `release-check.yml`
-  runs it on every PR (including label changes) and writes a "merging will
-  publish X" preview to the job summary. `release.yml` runs it after merge.
+- `scripts/release-lib.mjs`: shared logic (system discovery, changed-file
+  detection, label parsing, version math, the plan). Unit-tested by
+  `pnpm test:release`.
+- `scripts/release-plan.mjs`: decides what to publish. Used by both
+  `release-check.yml` and `release.yml`.
 - `scripts/release-publish.mjs`: builds, packs, verifies and publishes one
   system at an exact version. Idempotent: packages and releases that already
   exist are skipped, so a failed run can be re-run. CI runs
   `pnpm release:dry-run` (pack and verify every system) on every PR.
 
+### Launching a new system
+
+npm OIDC trusted publishing cannot create a package that doesn't exist yet,
+so `release.yml` publishes `launch` releases in a separate `launch` job with a
+token:
+
+1. Scaffold the system with `scripts/create-system.sh` and open a PR.
+2. Label the PR `launch`. `release-check` previews `<name> 0.1.0 (launch)`.
+3. On merge, the `launch` job publishes with the `NPM_TOKEN` secret of the
+   `npm-launch` environment, which is an npm granular token with write access
+   to the `@ajustinjames` scope.
+4. Run `pnpm release:trust <name>` locally, once. It registers `release.yml`
+   as the npm trusted publisher for both packages. `npm trust` requires
+   interactive 2FA, so it cannot run in CI.
+5. From then on, release the system with `patch`, `minor` or `major`.
+
+npm is removing direct publishing with 2FA-bypass tokens (announced for
+January 2027). After that, do step 3 locally from a checkout of `origin/main`
+with `npm login`:
+`node scripts/release-publish.mjs --system <name> --version 0.1.0 --launch`.
+
+The npm trusted publisher is bound to the workflow file name `release.yml`. If
+you rename that file, re-register every package with `pnpm release:trust`.
+
 ### Manual release and recovery
 
 Run the **Release** workflow manually (Actions tab, on `main`) with `system`
 and `bump`:
-- `patch|minor|major`: release without a PR label, for example if the label was
-  forgotten before merge.
+- `patch`, `minor`, `major` or `launch`: release without a PR label, for
+  example if the label was forgotten before merge.
 - `resume`: finish a release that published one of a system's packages but
-  not the other.
-
-### First release of a new system
-
-npm OIDC trusted publishing cannot create a package that doesn't exist yet,
-so a system's first release goes through a separate path:
-
-1. Scaffold the system with `scripts/create-system.sh` and merge it. Release
-   labels for it are created automatically on the next push to `main`.
-2. Run the **Release Bootstrap** workflow (`release-bootstrap.yml`) with
-   `system=<name>` (version defaults to `0.1.0`). It publishes with the
-   `NPM_TOKEN` secret of the `npm-bootstrap` environment, which is an npm
-   granular token with write access to the `@ajustinjames` scope.
-3. Run `pnpm release:trust <name>` locally, once. It registers `release.yml`
-   as the npm trusted publisher for both packages. `npm trust` requires
-   interactive 2FA, so it cannot run in CI.
-4. From then on, release with labels.
-
-Until bootstrapped, a system is skipped by `release.yml`, and a release label
-on it fails `release-check` with a pointer to the bootstrap workflow.
-
-npm is removing direct publishing with 2FA-bypass tokens (announced for
-January 2027). After that, do step 2 locally from a checkout of `origin/main`
-with `npm login`:
-`node scripts/release-publish.mjs --system <name> --version 0.1.0 --bootstrap`.
-
-The npm trusted publisher is bound to the workflow file name `release.yml`. If
-you rename that file, re-register every package with `pnpm release:trust`.
+  not the other. To finish a half-done launch, re-run with `launch` instead.
 
 ## Architecture
 

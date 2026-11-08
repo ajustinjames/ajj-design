@@ -1,13 +1,15 @@
 name: Release Check
 
-# Pre-merge guard and preview for label-driven releases. Validates the PR's
-# release labels (`<system>:<patch|minor|major>`) with the same plan logic the
-# Release workflow runs after merge, and writes "merging will publish X" to the
-# job summary. Re-runs when labels change, so the preview is always current.
+# Pre-merge guard and preview for label-driven releases. Runs the same plan
+# logic as the Release workflow against this PR's labels (patch, minor, major,
+# launch) and changed files, and writes "merging will publish X" to the job
+# summary. Re-runs when labels change, so the preview is always current.
 #
 # Fails the PR if:
-#   - a label names an unknown system, or a system has more than one label
-#   - a labeled system has never been published (use Release Bootstrap first)
+#   - more than one of patch/minor/major is set
+#   - a version label is set but the PR changes no shipped files of a released system
+#   - a changed system has never been published and launch is missing
+#   - launch is set but the PR changes no never-published system
 #   - a package.json version was edited (versions are computed by CI)
 on:
   pull_request:
@@ -21,8 +23,14 @@ concurrency:
 jobs:
   release-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      # The default pull_request ref is the PR merged into main, so HEAD^1..HEAD
+      # is exactly what the squash merge will land.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-node@v7
         with:

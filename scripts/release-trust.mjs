@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 import { RELEASE_WORKFLOW_FILE, discoverSystems, packageNames, readManifest } from './release-lib.mjs';
 
 /**
- * One-time, run-locally step after a system's first (bootstrap) release:
+ * One-time, run-locally step after a system's first (launch) release:
  * registers .github/workflows/release.yml as the npm trusted publisher (OIDC)
  * for both of the system's packages, so label-driven releases can publish
  * them without any token.
