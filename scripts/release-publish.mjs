@@ -27,7 +27,7 @@ import {
  *
  * Usage:
  *   node scripts/release-publish.mjs --system hardline --version 0.2.0
- *   node scripts/release-publish.mjs --system newsys --version 0.1.0 --launch
+ *   node scripts/release-publish.mjs --system newsys --version 0.1.0 --launch   # via pnpm release:launch
  *   node scripts/release-publish.mjs --all --dry-run          # pack + verify every system
  *
  * Flags:
@@ -40,8 +40,8 @@ import {
  *   --notes      Only print the GitHub release notes this release would get
  *                (PRs since the system's previous tag), then exit.
  *
- * Auth comes from the environment: OIDC in the Release workflow's publish job,
- * NODE_AUTH_TOKEN in its launch job, or your `npm login` session locally.
+ * Auth comes from the environment: OIDC in the Release workflow, or your
+ * `npm login` session locally (first releases, via `pnpm release:launch`).
  */
 
 const { values: args } = parseArgs({
@@ -91,12 +91,12 @@ function assertPublishable(system, version) {
     if (args.launch) {
       if (latest !== null && latest !== version) {
         die(
-          `${names[kind]} is already published (latest ${latest}). The launch label is only for a system's first release; use patch, minor or major.`,
+          `${names[kind]} is already published (latest ${latest}). Launching is only for a system's first release; release it with patch, minor or major labels.`,
         );
       }
     } else if (latest === null) {
       die(
-        `${names[kind]} has never been published. OIDC trusted publishing can't create packages; release ${system} with the launch label first.`,
+        `${names[kind]} has never been published. OIDC trusted publishing can't create packages; launch it first with \`pnpm release:launch ${system}\`.`,
       );
     } else if (compareSemver(version, latest) < 0) {
       die(`Refusing to publish ${names[kind]}@${version}: it is lower than the latest published ${latest}.`);

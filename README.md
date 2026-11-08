@@ -166,10 +166,10 @@ All components extend `LitElement`. Properties that affect style use `reflect: t
 
 - **Changelog:** [GitHub Releases](https://github.com/ajustinjames/ajj-design/releases). Each system is tagged `<system>-v<version>` (for example `hardline-v0.2.0`), and its release notes list only the changes to that system. There is no `CHANGELOG.md`.
 - **Versioning:** strict [semver](https://semver.org). Element tags, attributes, slots, parts, events, CSS custom properties (`--hl-*`, `--gl-*`) and package export paths are public API, so removing or renaming any of them is a major release. See [Versioning policy](AGENTS.md#versioning-policy) for the full rules.
-- **Provenance:** packages are published from GitHub Actions with npm trusted publishing and carry provenance attestations.
+- **Provenance:** every release after a system's first is published from GitHub Actions with npm trusted publishing and carries a provenance attestation.
 - **Previews:** every pull request gets installable preview builds from [pkg.pr.new](https://pkg.pr.new), posted as a comment on the PR.
 
-Maintainers release by labeling a PR `patch`, `minor`, `major`, or `launch` for a new system's first release. See [Release Workflow](AGENTS.md#release-workflow).
+Maintainers release by labeling a PR `patch`, `minor` or `major`. A new system's first release is published once with `pnpm release:launch <system>`. See [Release Workflow](AGENTS.md#release-workflow).
 
 ## Requirements
 

@@ -79,11 +79,11 @@ describe('changed-file detection', () => {
 
 describe('parseReleaseLabels', () => {
   it('ignores unrelated labels', () => {
-    assert.deepEqual(parseReleaseLabels(['dependencies', 'javascript']), { bump: null, launch: false, errors: [] });
+    assert.deepEqual(parseReleaseLabels(['dependencies', 'javascript', 'launch']), { bump: null, errors: [] });
   });
 
-  it('allows one bump plus launch', () => {
-    assert.deepEqual(parseReleaseLabels(['minor', 'launch']), { bump: 'minor', launch: true, errors: [] });
+  it('reads one bump label', () => {
+    assert.deepEqual(parseReleaseLabels(['minor', 'enhancement']), { bump: 'minor', errors: [] });
   });
 
   it('rejects more than one bump label', () => {
@@ -123,43 +123,31 @@ describe('planRelease (labels)', () => {
     assert.match(errors[0], /changes no published files/);
   });
 
-  it('launches a new system at 0.1.0', () => {
-    const entries = bySystem(plan(['launch'], [NEW]));
-    assert.equal(entries.newsys.action, 'launch');
-    assert.equal(entries.newsys.version, '0.1.0');
+  it('never releases a new system from CI; points to the local launch', () => {
+    const entry = bySystem(plan([], [NEW])).newsys;
+    assert.equal(entry.action, 'skip');
+    assert.match(entry.reason, /pnpm release:launch newsys/);
   });
 
-  it('launches a new system and bumps a changed released system in one PR', () => {
-    const entries = bySystem(plan(['launch', 'minor'], [NEW, HL]));
-    assert.equal(entries.newsys.action, 'launch');
-    assert.equal(entries.hardline.action, 'publish');
+  it('applies a bump to the released systems in a PR that also adds a new system', () => {
+    const entries = bySystem(plan(['minor'], [NEW, HL]));
     assert.equal(entries.hardline.version, '0.2.0');
+    assert.equal(entries.newsys.action, 'skip');
+    assert.deepEqual(errorsOf(Object.values(entries)), []);
   });
 
-  it('requires launch for a changed new system when releasing', () => {
-    const errors = errorsOf(plan(['minor'], [NEW]));
-    assert.ok(errors.some((e) => /needs the launch label/.test(e)));
+  it('fails a bump label when the only changed system is new, with the launch command', () => {
+    const errors = errorsOf(plan(['patch'], [NEW]));
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /not on npm yet/);
+    assert.match(errors[0], /pnpm release:launch/);
   });
 
-  it('skips a changed new system quietly when there are no release labels', () => {
-    assert.equal(bySystem(plan([], [NEW])).newsys.action, 'skip');
-  });
-
-  it('fails launch when no new system changed', () => {
-    assert.match(errorsOf(plan(['launch'], [HL]))[0], /changes no system that has never been published/);
-  });
-
-  it('does not release a changed released system with launch alone', () => {
-    const entries = bySystem(plan(['launch'], [NEW, HL]));
-    assert.equal(entries.hardline.action, 'skip');
-    assert.match(entries.hardline.reason, /launch only applies to new systems/);
-  });
-
-  it('finishes a half-done launch at the version already published', () => {
+  it('warns about a half-done launch', () => {
     const states = [state('newsys', { tokens: '0.1.0', components: null })];
-    const entry = plan(['launch'], [NEW], states)[0];
-    assert.equal(entry.action, 'launch');
-    assert.equal(entry.version, '0.1.0');
+    const entry = plan([], [], states)[0];
+    assert.equal(entry.action, 'warn');
+    assert.match(entry.reason, /pnpm release:launch newsys/);
   });
 
   it('rejects hand-edited manifest versions', () => {
@@ -183,12 +171,10 @@ describe('planRelease (manual dispatch)', () => {
     assert.equal(entries.glassline.action, 'skip');
   });
 
-  it('launches a new system', () => {
-    assert.equal(dispatch('newsys', 'launch').newsys.action, 'launch');
-  });
-
-  it('refuses launch for a released system', () => {
-    assert.equal(dispatch('hardline', 'launch').hardline.action, 'error');
+  it('refuses to release a never-published system', () => {
+    const entry = dispatch('newsys', 'minor').newsys;
+    assert.equal(entry.action, 'error');
+    assert.match(entry.reason, /pnpm release:launch newsys/);
   });
 
   it('resumes a partial release at the higher version', () => {

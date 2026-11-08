@@ -1,16 +1,17 @@
 name: Release Check
 
 # Pre-merge guard and preview for label-driven releases. Runs the same plan
-# logic as the Release workflow against this PR's labels (patch, minor, major,
-# launch) and changed files, and writes "merging will publish X" to the job
-# summary. Re-runs when labels change, so the preview is always current.
+# logic as the Release workflow against this PR's label (patch, minor, major)
+# and changed files, and writes "merging will publish X" to the job summary.
+# Re-runs when labels change, so the preview is always current.
 #
 # Fails the PR if:
 #   - more than one of patch/minor/major is set
 #   - a version label is set but the PR changes no shipped files of a released system
-#   - a changed system has never been published and launch is missing
-#   - launch is set but the PR changes no never-published system
 #   - a package.json version was edited (versions are computed by CI)
+# A changed system that isn't on npm yet is reported with the local launch
+# command (`pnpm release:launch <system>`); CI never publishes it.
+
 on:
   pull_request:
     branches: [main]

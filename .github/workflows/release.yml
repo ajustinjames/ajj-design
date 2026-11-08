@@ -1,25 +1,23 @@
 name: Release
 
 # Label-driven releases. On every push to main, reads the merged PR's labels
-# and the files it changed, then releases each affected design system:
+# and the files it changed, then releases each affected design system with
+# npm OIDC trusted publishing (no npm token anywhere in CI):
 #
 #   patch | minor | major  bump every already-published system the PR changed
-#                          (publish job, npm OIDC trusted publishing)
-#   launch                 first release (0.1.0) of every never-published
-#                          system the PR changed (launch job, NPM_TOKEN)
 #
-# A PR can carry one of patch/minor/major plus launch. Only changes to files
-# that ship in the npm package count (not tests, stories or test configs).
-# Versions come from npm + label; the real version is stamped into the
-# manifests inside this run only, and nothing is committed back to main.
+# Only changes to files that ship in the npm package count (not tests, stories
+# or test configs). Versions come from npm + label; the real version is stamped
+# into the manifests inside this run only, and nothing is committed to main.
 #
 # Manual runs (Actions → Release → Run workflow) take an explicit system and
-# bump: patch/minor/major/launch, or resume to finish a release that published
-# only one of a system's two packages.
+# bump: patch/minor/major, or resume to finish a release that published only
+# one of a system's two packages.
 #
-# Why launch is a separate job: OIDC trusted publishing cannot create a package
-# that doesn't exist yet, so a first release needs a token. After a launch, run
-# `pnpm release:trust <system>` once locally (npm trust needs interactive 2FA).
+# A brand-new system is NOT released here: OIDC trusted publishing cannot
+# create packages that don't exist yet. Its first release is published locally
+# with `pnpm release:launch <system>`, which also registers this workflow as
+# the package's trusted publisher. Until then this workflow skips it.
 #
 # npm's trusted publisher config is bound to this file name (release.yml).
 # Renaming it breaks publishing until every package's trusted publisher is updated.
@@ -34,10 +32,10 @@ on:
         required: true
         type: string
       bump:
-        description: patch/minor/major over npm, launch for a first release, resume to finish a partial one
+        description: patch/minor/major over npm, or resume to finish a partial release
         required: true
         type: choice
-        options: [patch, minor, major, launch, resume]
+        options: [patch, minor, major, resume]
 
 # Never interrupt an in-flight publish; queue instead.
 concurrency:
@@ -54,7 +52,6 @@ jobs:
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
       has_publish: ${{ steps.plan.outputs.has_publish }}
-      has_launch: ${{ steps.plan.outputs.has_launch }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -127,63 +124,3 @@ jobs:
               --version "$(echo "$entry" | jq -r '.version')"
           done
 
-  launch:
-    needs: plan
-    if: needs.plan.outputs.has_launch == 'true'
-    runs-on: ubuntu-latest
-    # Holds the NPM_TOKEN secret, so the token is only exposed to this job.
-    # Add required reviewers to the environment for an approval gate.
-    environment: npm-launch
-    permissions:
-      contents: write # tag + GitHub release
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Require NPM_TOKEN
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "::error::NPM_TOKEN is not set on the npm-launch environment. Create an npm granular access token with read/write access to the @ajustinjames scope and add it there, then re-run this job."
-            exit 1
-          fi
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # NOTE: npm is removing direct publishing with 2FA-bypass granular tokens
-      # (announced for January 2027). After that, launch locally instead, with
-      # `npm login` on a checkout of origin/main:
-      #   node scripts/release-publish.mjs --system <system> --version 0.1.0 --launch
-      - name: Publish first release
-        env:
-          PLAN: ${{ needs.plan.outputs.plan }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "$PLAN" | jq -c '.[] | select(.action == "launch")' | while read -r entry; do
-            system=$(echo "$entry" | jq -r '.system')
-            version=$(echo "$entry" | jq -r '.version')
-            node scripts/release-publish.mjs --system "$system" --version "$version" --launch
-            {
-              echo "### ${system} ${version} launched 🎉"
-              echo ""
-              echo "**One more step, once, locally:** register release.yml as the npm trusted publisher so patch/minor/major releases work:"
-              echo ""
-              echo '```sh'
-              echo "npm login   # if needed; npm trust requires interactive 2FA"
-              echo "pnpm release:trust ${system}"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          done

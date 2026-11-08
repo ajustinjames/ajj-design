@@ -12,10 +12,13 @@ import path from 'node:path';
  * stamps it into the manifests inside the CI run only, then packs, publishes
  * and tags. Nothing is ever committed back to the repo.
  *
- * Release labels (one PR may carry one bump label, plus `launch`):
+ * Release labels (at most one per PR):
  *   patch | minor | major  bump every already-published system the PR changed
- *   launch                 first release (LAUNCH_VERSION) of every never-published
- *                          system the PR changed
+ *
+ * A system's first release is never done by CI: OIDC trusted publishing can't
+ * create packages, and we keep no npm token in CI. It is published locally with
+ * `pnpm release:launch <system>` (LAUNCH_VERSION), which also registers the
+ * trusted publisher.
  * Which systems a PR "changed" is derived from its files: only files that end
  * up in the published package count (tests, stories, test configs don't).
  */
@@ -23,7 +26,6 @@ import path from 'node:path';
 export const SCOPE = '@ajustinjames';
 export const PLACEHOLDER_VERSION = '0.0.0';
 export const BUMPS = ['patch', 'minor', 'major'];
-export const LAUNCH = 'launch';
 export const LAUNCH_VERSION = '0.1.0';
 export const RELEASE_WORKFLOW_FILE = 'release.yml';
 
@@ -154,7 +156,7 @@ export function changedSystems(files, systems) {
 
 /**
  * Parse PR labels. Unrelated labels (e.g. "dependencies") are ignored.
- * Returns { bump: 'patch'|'minor'|'major'|null, launch: boolean, errors: string[] }.
+ * Returns { bump: 'patch'|'minor'|'major'|null, errors: string[] }.
  */
 export function parseReleaseLabels(labels) {
   const bumps = labels.filter((label) => BUMPS.includes(label));
@@ -162,7 +164,7 @@ export function parseReleaseLabels(labels) {
   if (bumps.length > 1) {
     errors.push(`Multiple version labels (${bumps.join(', ')}). Keep at most one of patch, minor, major.`);
   }
-  return { bump: bumps[0] ?? null, launch: labels.includes(LAUNCH), errors };
+  return { bump: bumps[0] ?? null, errors };
 }
 
 function publishStatus({ tokens, components }) {
@@ -176,38 +178,28 @@ function describeState(system, { tokens, components }) {
   return `${names.tokens}=${tokens ?? 'unpublished'}, ${names.components}=${components ?? 'unpublished'}`;
 }
 
+const launchHint = (system) => `launch it locally after merge with \`pnpm release:launch ${system}\``;
+
 /**
  * Turn a request for one system into a plan entry. Requests:
- * patch|minor|major|launch|resume, or undefined with a skip reason.
+ * patch|minor|major|resume, or undefined with a skip reason.
  */
 function resolve(system, published, request, skipReason) {
   const status = publishStatus(published);
   const state = describeState(system, published);
   const fail = (reason) => ({ system, action: 'error', reason });
 
+  if (status === 'unpublished' || status === 'partial-first') {
+    const what = status === 'unpublished' ? 'not on npm yet' : `partially published (${state})`;
+    if (request) return fail(`${system} is ${what}; CI can only release published systems. Run \`pnpm release:launch ${system}\` locally.`);
+    return { system, action: status === 'unpublished' ? 'skip' : 'warn', reason: `${what}; ${launchHint(system)}` };
+  }
+
   if (!request) {
-    if (status === 'partial-first') {
-      return { system, action: 'warn', reason: `partial first release (${state}); finish it with the launch label or a manual Release run with bump=launch` };
-    }
     if (status === 'partial') {
       return { system, action: 'warn', reason: `partial release (${state}); finish it with a manual Release run with bump=resume` };
     }
     return { system, action: 'skip', reason: skipReason };
-  }
-
-  if (request === LAUNCH) {
-    if (status === 'unpublished') {
-      return { system, action: 'launch', version: LAUNCH_VERSION, bump: LAUNCH, published: 'unpublished' };
-    }
-    if (status === 'partial-first') {
-      // Finish a first release that published only one package, at its version.
-      return { system, action: 'launch', version: published.tokens ?? published.components, bump: LAUNCH, published: state };
-    }
-    return fail(`${system} is already on npm (${state}); launch is only for a system's first release. Use patch, minor or major.`);
-  }
-
-  if (status === 'unpublished' || status === 'partial-first') {
-    return fail(`${system} has never been fully published (${state}). Its first release needs the launch label.`);
   }
 
   if (status === 'partial') {
@@ -238,7 +230,7 @@ function resolve(system, published, request, skipReason) {
 export function planRelease({ states, labels = [], changedFiles = [], dispatch }) {
   const plan = [];
   const systems = states.map((state) => state.system);
-  const { bump, launch, errors } = dispatch ? { bump: null, launch: false, errors: [] } : parseReleaseLabels(labels);
+  const { bump, errors } = dispatch ? { bump: null, errors: [] } : parseReleaseLabels(labels);
   const changed = changedSystems(changedFiles, systems);
 
   for (const { system, manifestVersions, published } of states) {
@@ -260,50 +252,35 @@ export function planRelease({ states, labels = [], changedFiles = [], dispatch }
     if (plan.at(-1)?.system === system) continue;
 
     if (dispatch) {
-      plan.push(
-        dispatch.system === system
-          ? resolve(system, published, dispatch.bump)
-          : resolve(system, published, undefined, 'not selected'),
-      );
+      plan.push(resolve(system, published, dispatch.system === system ? dispatch.bump : undefined, 'not selected'));
       continue;
     }
 
     const status = publishStatus(published);
-    const isNew = status === 'unpublished' || status === 'partial-first';
-    let request;
-    let skipReason;
-    if (!changed.has(system)) {
-      skipReason = 'no changes to published files';
-    } else if (isNew) {
-      if (launch) request = LAUNCH;
-      else if (bump) request = bump; // resolve() turns this into "needs the launch label"
-      else skipReason = 'never published; add the launch label to release it';
-    } else if (bump) {
-      request = bump;
+    if (status === 'unpublished' || status === 'partial-first') {
+      // Never released by CI: a bump label applies to the published systems in
+      // the PR; this one is reported (skip/warn) with the local launch command.
+      plan.push(resolve(system, published, undefined));
+    } else if (!changed.has(system)) {
+      plan.push(resolve(system, published, undefined, 'no changes to published files'));
     } else {
-      skipReason = launch ? 'already published; launch only applies to new systems' : 'no release label';
+      plan.push(resolve(system, published, bump ?? undefined, 'no release label'));
     }
-    plan.push(resolve(system, published, request, skipReason));
   }
 
   for (const reason of errors) plan.push({ system: '*', action: 'error', reason });
 
-  if (!dispatch) {
-    const hasErrors = plan.some((entry) => entry.action === 'error');
-    if (!hasErrors && bump && !plan.some((entry) => entry.action === 'publish')) {
-      plan.push({
-        system: '*',
-        action: 'error',
-        reason: `The ${bump} label is set, but this PR changes no published files of an already-released system (${systems.join(', ')}). Remove the label, or change shipped files.`,
-      });
-    }
-    if (!hasErrors && launch && !plan.some((entry) => entry.action === 'launch')) {
-      plan.push({
-        system: '*',
-        action: 'error',
-        reason: 'The launch label is set, but this PR changes no system that has never been published.',
-      });
-    }
+  if (!dispatch && bump && !plan.some((entry) => entry.action === 'error' || entry.action === 'publish')) {
+    const unreleased = states
+      .filter(({ system, published }) => changed.has(system) && publishStatus(published) !== 'published' && publishStatus(published) !== 'partial')
+      .map(({ system }) => system);
+    plan.push({
+      system: '*',
+      action: 'error',
+      reason: unreleased.length
+        ? `The ${bump} label is set, but the only systems this PR changes (${unreleased.join(', ')}) are not on npm yet. Remove the label; after merge, run \`pnpm release:launch <system>\` locally.`
+        : `The ${bump} label is set, but this PR changes no published files of a released system (${systems.join(', ')}). Remove the label, or change shipped files.`,
+    });
   }
 
   return plan;
@@ -322,7 +299,6 @@ export function githubRepo(system) {
 const NOTE_SECTIONS = [
   ['major', 'Breaking changes'],
   ['minor', 'Features'],
-  ['launch', 'Features'],
   ['patch', 'Fixes'],
 ];
 

@@ -3,7 +3,6 @@ import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import {
   BUMPS,
-  LAUNCH,
   discoverSystems,
   latestPublishedVersion,
   packageNames,
@@ -15,8 +14,8 @@ import {
 /**
  * Computes the release plan for every design system in this repo.
  *
- * Label mode (PRs and pushes to main): the PR's labels (`patch|minor|major`,
- * plus `launch` for brand-new systems) apply to every system whose published
+ * Label mode (PRs and pushes to main): the PR's label (`patch|minor|major`)
+ * applies to every already-published system whose published
  * files the PR changed. Changed files come from `git diff HEAD^1 HEAD`, which is
  * the PR's changes both on the pull_request merge ref and on main after a
  * squash merge (the only merge method main allows).
@@ -30,12 +29,12 @@ import {
  *   node scripts/release-plan.mjs --labels '["minor"]'                      # labels + git diff
  *   node scripts/release-plan.mjs --labels '["minor"]' --check              # pre-merge wording
  *   node scripts/release-plan.mjs --labels '["minor"]' --files '["packages/hardline-components/src/x.ts"]'
- *   node scripts/release-plan.mjs --system hardline --bump patch|minor|major|launch|resume
+ *   node scripts/release-plan.mjs --system hardline --bump patch|minor|major|resume
  *   node scripts/release-plan.mjs ... --json                                # raw plan on stdout
  *
  * Labels may also come from the RELEASE_LABELS env var (JSON array).
  * Exits 1 if the plan contains an error.
- * Writes `plan`, `has_publish`, `has_launch` to $GITHUB_OUTPUT and a summary
+ * Writes `plan` and `has_publish` to $GITHUB_OUTPUT and a summary
  * table to $GITHUB_STEP_SUMMARY when those are set.
  */
 
@@ -80,7 +79,7 @@ let labels = [];
 let changedFiles = [];
 
 if (args.system || args.bump) {
-  const bumps = [...BUMPS, LAUNCH, 'resume'];
+  const bumps = [...BUMPS, 'resume'];
   if (!args.system || !args.bump) inputErrors.push('--system and --bump must be passed together');
   else if (!systems.includes(args.system)) inputErrors.push(`Unknown system '${args.system}' (known: ${systems.join(', ')})`);
   else if (!bumps.includes(args.bump)) inputErrors.push(`Unknown bump '${args.bump}'; expected one of ${bumps.join(', ')}`);
@@ -110,13 +109,11 @@ const plan = [
   ...inputErrors.map((reason) => ({ system: '*', action: 'error', reason })),
 ];
 
-const releases = plan.filter((entry) => entry.action === 'publish' || entry.action === 'launch');
+const releases = plan.filter((entry) => entry.action === 'publish');
 const failed = plan.some((entry) => entry.action === 'error');
 
 function describe(entry) {
   switch (entry.action) {
-    case 'launch':
-      return `launch ${entry.version} (first release${entry.published === 'unpublished' ? '' : `, finishing ${entry.published}`})`;
     case 'publish':
       return entry.bump === 'resume'
         ? `resume ${entry.version} (${entry.published})`
@@ -140,7 +137,6 @@ if (args.json) {
 if (process.env.GITHUB_OUTPUT) {
   appendFileSync(process.env.GITHUB_OUTPUT, `plan=${JSON.stringify(plan)}\n`);
   appendFileSync(process.env.GITHUB_OUTPUT, `has_publish=${plan.some((entry) => entry.action === 'publish')}\n`);
-  appendFileSync(process.env.GITHUB_OUTPUT, `has_launch=${plan.some((entry) => entry.action === 'launch')}\n`);
 }
 
 if (process.env.GITHUB_STEP_SUMMARY) {
@@ -148,10 +144,10 @@ if (process.env.GITHUB_STEP_SUMMARY) {
     ? '❌ The release plan has errors.'
     : releases.length === 0
       ? args.check
-        ? 'Merging this PR will **not** publish anything. Add a `patch`, `minor` or `major` label to release the systems it changes (`launch` for a new system).'
+        ? 'Merging this PR will **not** publish anything. Add a `patch`, `minor` or `major` label to release the systems it changes.'
         : 'Nothing to publish.'
       : `${args.check ? 'Merging this PR will publish' : 'Publishing'}: ${releases
-          .map((entry) => `**${entry.system} ${entry.version}**${entry.action === 'launch' ? ' (launch)' : ''}`)
+          .map((entry) => `**${entry.system} ${entry.version}**`)
           .join(', ')}`;
   const rows = plan.map((entry) => `| ${entry.system} | ${entry.action} | ${describe(entry).replaceAll('|', '\\|')} |`);
   appendFileSync(

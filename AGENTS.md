@@ -43,7 +43,8 @@ pnpm test:release                                # unit tests for the release lo
 pnpm release:plan --labels '["minor"]'           # preview a label against HEAD^1..HEAD
 pnpm release:dry-run                             # build + pack + verify every system
 pnpm release:notes --system hardline --version 0.2.0  # preview GitHub release notes
-pnpm release:trust <system>                      # one-time npm trusted-publisher setup
+pnpm release:launch <system>                     # first release of a new system (local, needs npm login)
+pnpm release:trust <system>                      # re-register the npm trusted publisher
 ```
 
 ## Release Workflow
@@ -57,10 +58,8 @@ repo never stores a real version.
   - `patch`, `minor`, `major`: on merge, bump **every already-published
     system the PR changed** by that amount, computed from each system's own
     npm version (for example hardline `0.1.0` + `minor` = `0.2.0`).
-  - `launch`: on merge, publish the first release (`0.1.0`) of every
-    never-published system the PR changed.
-  - A PR may carry at most one of `patch`, `minor` and `major`, plus `launch`.
-    PRs without a release label publish nothing. Docs, CI, Storybook-only and
+  - A PR may carry at most one of `patch`, `minor` and `major`. PRs without
+    a release label publish nothing. Docs, CI, Storybook-only and
     dependency PRs normally get no label.
 - "Changed" means the PR touches files that ship in the npm package:
   `src/`, `tokens.json`, `sd.config.js`, `tsconfig.build.json`, `package.json`,
@@ -99,7 +98,7 @@ release label:
 | PR label | Section |
 |---|---|
 | `major` | Breaking changes |
-| `minor`, `launch` | Features |
+| `minor` | Features |
 | `patch` | Fixes |
 | none (e.g. dependency bumps) | Other changes |
 
@@ -146,24 +145,28 @@ Not public API, so no version impact: source file paths (`ds-*`), internal
 
 ### Launching a new system
 
-npm OIDC trusted publishing cannot create a package that doesn't exist yet,
-so `release.yml` publishes `launch` releases in a separate `launch` job with a
-token:
+CI never publishes a system's first release. npm OIDC trusted publishing can't
+create a package that doesn't exist yet, and the repo deliberately keeps **no
+npm token in CI**. Instead, the first release is published once from your
+machine:
 
-1. Scaffold the system with `scripts/create-system.sh` and open a PR.
-2. Label the PR `launch`. `release-check` previews `<name> 0.1.0 (launch)`.
-3. On merge, the `launch` job publishes with the `NPM_TOKEN` secret of the
-   `npm-launch` environment, which is an npm granular token with write access
-   to the `@ajustinjames` scope.
-4. Run `pnpm release:trust <name>` locally, once. It registers `release.yml`
-   as the npm trusted publisher for both packages. `npm trust` requires
-   interactive 2FA, so it cannot run in CI.
-5. From then on, release the system with `patch`, `minor` or `major`.
+1. Scaffold the system with `scripts/create-system.sh` and merge it **without a
+   release label**. Until it is launched, `release.yml` skips it, and
+   `release-check` shows it as "not on npm yet" with the command to run.
+2. On a clean checkout of `origin/main`:
+   ```bash
+   npm login                     # npm publish and npm trust need interactive 2FA
+   pnpm release:launch <name>    # publishes 0.1.0 (or --version x.y.z)
+   ```
+   This publishes both packages from your npm session, creates the
+   `<name>-v0.1.0` tag and GitHub release with `gh`, and registers `release.yml`
+   as both packages' npm trusted publisher (`pnpm release:trust`).
+3. From then on, release the system with `patch`, `minor` or `major`.
 
-npm is removing direct publishing with 2FA-bypass tokens (announced for
-January 2027). After that, do step 3 locally from a checkout of `origin/main`
-with `npm login`:
-`node scripts/release-publish.mjs --system <name> --version 0.1.0 --launch`.
+`release:launch` is idempotent: if it stops partway (for example a failed 2FA
+prompt), re-run it, and steps already done are skipped. A first release
+published this way has no npm provenance attestation, because only CI publishes
+are attested; every later release has one.
 
 The npm trusted publisher is bound to the workflow file name `release.yml`. If
 you rename that file, re-register every package with `pnpm release:trust`.
@@ -172,10 +175,10 @@ you rename that file, re-register every package with `pnpm release:trust`.
 
 Run the **Release** workflow manually (Actions tab, on `main`) with `system`
 and `bump`:
-- `patch`, `minor`, `major` or `launch`: release without a PR label, for
-  example if the label was forgotten before merge.
+- `patch`, `minor` or `major`: release without a PR label, for example if the
+  label was forgotten before merge.
 - `resume`: finish a release that published one of a system's packages but
-  not the other. To finish a half-done launch, re-run with `launch` instead.
+  not the other. To finish a half-done launch, re-run `pnpm release:launch`.
 
 ## Architecture
 
