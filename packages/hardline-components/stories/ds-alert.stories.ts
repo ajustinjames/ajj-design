@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-alert/ds-alert.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-alert',
+  title: 'Hardline/hl-alert',
   tags: ['autodocs'],
   render: ({ tone, header, body }) => html`
     <hl-alert tone="${tone}" style="max-width:400px;">

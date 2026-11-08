@@ -12,7 +12,7 @@ const renderCard = (elevation: 1 | 2 | 3, withHeader = false) => html`
 `;
 
 const meta: Meta<DsCardArgs> = {
-  title: 'Atoms/hl-card',
+  title: 'Hardline/hl-card',
   tags: ['autodocs'],
   render: ({ elevation, withHeader }) => renderCard(elevation, withHeader),
   argTypes: {

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-badge/ds-badge.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-badge',
+  title: 'Hardline/hl-badge',
   tags: ['autodocs'],
   render: ({ tone, label }) => html`<hl-badge tone="${tone}">${label}</hl-badge>`,
   argTypes: {

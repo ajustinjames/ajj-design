@@ -15,7 +15,7 @@ const fieldStyle = [
 ].join(';');
 
 const meta: Meta = {
-  title: 'Atoms/hl-error-message',
+  title: 'Hardline/hl-error-message',
   tags: ['autodocs'],
   render: ({ text }) => html`
     <div style="display:flex;flex-direction:column;gap:4px;width:280px;">

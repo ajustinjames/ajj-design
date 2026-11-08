@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-toggle/ds-toggle.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-toggle',
+  title: 'Hardline/hl-toggle',
   tags: ['autodocs'],
   render: ({ checked, disabled, label }) => html`
     <hl-toggle ?disabled="${disabled}">

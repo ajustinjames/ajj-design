@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-progress/ds-progress.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-progress',
+  title: 'Hardline/hl-progress',
   tags: ['autodocs'],
   render: ({ value }) => html`
     <hl-progress value="${value}" style="width:300px;">

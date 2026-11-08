@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-spinner/ds-spinner.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-spinner',
+  title: 'Hardline/hl-spinner',
   tags: ['autodocs'],
   render: ({ size, label }) => html`<hl-spinner size="${size}" label="${label}"></hl-spinner>`,
   argTypes: {

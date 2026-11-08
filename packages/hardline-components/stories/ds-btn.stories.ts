@@ -15,7 +15,7 @@ const renderButton = (variant: DsBtnArgs['variant'], size: DsBtnArgs['size'], la
 `;
 
 const meta: Meta<DsBtnArgs> = {
-  title: 'Atoms/hl-btn',
+  title: 'Hardline/hl-btn',
   tags: ['autodocs'],
   render: ({ variant, size, label }) => renderButton(variant, size, label),
   argTypes: {

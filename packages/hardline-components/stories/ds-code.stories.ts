@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import '../src/ds-code/ds-code.js';
 
 const meta: Meta = {
-  title: 'Atoms/hl-code',
+  title: 'Hardline/hl-code',
   tags: ['autodocs'],
   render: ({ inline, language, content }) => inline
     ? html`<p>Run <hl-code inline>${content}</hl-code> in terminal.</p>`
