@@ -1,6 +1,6 @@
 {
   "name": "@ajustinjames/glassline-tokens",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Design tokens for the Glassline liquid-glass design system, compiled to CSS custom properties (--gl-*) via Style Dictionary.",
   "type": "module",
   "repository": {

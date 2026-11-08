@@ -15,7 +15,11 @@
     "test": "pnpm -r --workspace-concurrency=1 --filter './packages/*-components' test",
     "test:screenshots": "pnpm -r --filter './packages/*-components' test:screenshots",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "release:plan": "node scripts/release-plan.mjs",
+    "release:dry-run": "node scripts/release-publish.mjs --all --dry-run",
+    "release:trust": "node scripts/release-trust.mjs",
+    "test:release": "node --test scripts/release-lib.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

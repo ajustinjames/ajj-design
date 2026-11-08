@@ -40,6 +40,12 @@ jobs:
       - name: Build tokens
         run: pnpm tokens:build
 
+      - name: Release script tests
+        run: pnpm test:release
+
+      - name: Release dry run (build, pack, verify every system)
+        run: pnpm release:dry-run
+
       - name: Test
         run: pnpm test
 

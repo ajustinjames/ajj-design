@@ -1,26 +1,54 @@
 name: Release
 
+# Label-driven releases for systems that already exist on npm.
+#
+# On every push to main, finds the merged PR for the pushed commit and reads its
+# release labels (`<system>:<patch|minor|major>`). For each labeled system it
+# computes the next version from npm, stamps it into the manifests inside this
+# run only, then publishes via npm OIDC trusted publishing and creates the
+# `<system>-v<version>` tag + GitHub release. Nothing is committed to main.
+#
+# Run it manually (workflow_dispatch) to release without a PR label, or with
+# bump=resume to finish a release that published only one of a system's packages.
+#
+# A system's FIRST release goes through release-bootstrap.yml instead: OIDC
+# trusted publishing cannot create packages that don't exist yet.
+#
+# npm's trusted publisher config is bound to this file name (release.yml).
+# Renaming it breaks publishing until every package's trusted publisher is updated.
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      system:
+        description: Design system to release (e.g. hardline, glassline)
+        required: true
+        type: string
+      bump:
+        description: Version bump over the published npm version
+        required: true
+        type: choice
+        options: [patch, minor, major, resume]
 
-# Never interrupt an in-flight publish; let pushes queue instead.
+# Never interrupt an in-flight publish; queue instead. Shared with Release Bootstrap.
 concurrency:
   group: release-main
   cancel-in-progress: false
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # tag + GitHub release
       id-token: write # npm OIDC trusted publishing
+      pull-requests: read # read the merged PR's labels
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # tags, for release-note ranges
 
       - uses: pnpm/action-setup@v6
 
@@ -33,50 +61,73 @@ jobs:
       - name: Update npm
         run: npm install -g npm@^11.5.1
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Read release labels from the merged PR
+        id: labels
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          labels=$(gh api "repos/${REPO}/commits/${SHA}/pulls" \
+            | jq -c '[.[] | select(.merged_at != null and .base.ref == "main")][0] | if . == null then [] else [.labels[].name] end')
+          echo "Merged PR labels: ${labels}"
+          echo "labels=${labels}" >> "$GITHUB_OUTPUT"
 
       - name: Compute release plan
         id: plan
-        run: node scripts/release-plan.mjs
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_LABELS: ${{ steps.labels.outputs.labels }}
+          INPUT_SYSTEM: ${{ inputs.system }}
+          INPUT_BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            node scripts/release-plan.mjs --system "$INPUT_SYSTEM" --bump "$INPUT_BUMP"
+          else
+            node scripts/release-plan.mjs
+          fi
 
-      - name: Publish releases
+      - name: Install dependencies
+        if: steps.plan.outputs.has_publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish
         if: steps.plan.outputs.has_publish == 'true'
         env:
           PLAN: ${{ steps.plan.outputs.plan }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .release-tarballs
-
           echo "$PLAN" | jq -c '.[] | select(.action == "publish")' | while read -r entry; do
-            SYSTEM=$(echo "$entry" | jq -r '.system')
-            VERSION=$(echo "$entry" | jq -r '.version')
-            TAG="${SYSTEM}-v${VERSION}"
+            node scripts/release-publish.mjs \
+              --system "$(echo "$entry" | jq -r '.system')" \
+              --version "$(echo "$entry" | jq -r '.version')"
+          done
 
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
-              echo "::error::Tag ${TAG} already exists"
-              exit 1
-            fi
+  sync-labels:
+    # Keep `<system>:<patch|minor|major>` labels in sync with packages/*, so a
+    # newly scaffolded system gets its release labels automatically.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
 
-            echo "Releasing ${SYSTEM} v${VERSION}"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
 
-            pnpm --filter "@ajustinjames/${SYSTEM}-tokens" build
-            pnpm --filter "@ajustinjames/${SYSTEM}-components" build
-
-            pnpm --dir "packages/${SYSTEM}-tokens" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
-            pnpm --dir "packages/${SYSTEM}-components" pack --pack-destination "$GITHUB_WORKSPACE/.release-tarballs"
-
-            TOKENS_TGZ=".release-tarballs/ajustinjames-${SYSTEM}-tokens-${VERSION}.tgz"
-            COMPONENTS_TGZ=".release-tarballs/ajustinjames-${SYSTEM}-components-${VERSION}.tgz"
-
-            node scripts/verify-publish-metadata.mjs "$TOKENS_TGZ" "$COMPONENTS_TGZ"
-
-            npm publish "$TOKENS_TGZ" --access public
-            npm publish "$COMPONENTS_TGZ" --access public
-
-            git tag "$TAG"
-            git push origin "refs/tags/${TAG}"
-
-            gh release create "$TAG" --title "${SYSTEM} v${VERSION}" --generate-notes
+      - name: Create or update release labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          systems=$(node --input-type=module -e "import { discoverSystems } from './scripts/release-lib.mjs'; console.log(discoverSystems().join(' '))")
+          for system in $systems; do
+            gh label create "${system}:patch" --force --color 0E8A16 --description "Release ${system} with a patch bump on merge"
+            gh label create "${system}:minor" --force --color 1D76DB --description "Release ${system} with a minor bump on merge"
+            gh label create "${system}:major" --force --color B60205 --description "Release ${system} with a major bump on merge"
           done
